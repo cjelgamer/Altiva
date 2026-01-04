@@ -8,156 +8,113 @@ sys.path.append(str(ROOT_DIR))
 from backend.crew.crew import run_initial_crew
 from backend.services.database import has_user_profile, get_user_profile, user_profiles
 
-
-# --- CARGAR ESTILOS MODERNOS DE ALTIVA ---
-def load_modern_css():
-    """Carga el CSS moderno con animaciones y diseño mobile-first"""
-    css_file = ROOT_DIR / "frontend" / "styles" / "altiva.css"
-    if css_file.exists():
-        with open(css_file, "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-
-load_modern_css()
-
-st.set_page_config(
-    page_title="ALTIVA - Configuración de Perfil",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-    page_icon="⚙️",
-)
-
-# --- DISEÑO MODERNO CON ICONOS GRANDES Y BORDES REDONDEADOS ---
+# --- ESTILO OSCURO MODERNO CON AJUSTES ---
 st.markdown(
     """
 <style>
-    /* Asegurar que el CSS moderno se aplique correctamente */
-    .stApp {
-        background: var(--bg-secondary) !important;
-        background-image: 
-            radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(124, 58, 237, 0.03) 0%, transparent 50%);
+    /* Variables oscuras */
+    :root {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --bg-card: #1e293b;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --primary-color: #3b82f6;
+        --primary-dark: #2563eb;
+        --accent-color: #06b6d4;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --error-color: #ef4444;
+        --border-color: #334155;
+        --border-light: #475569;
     }
     
+    /* Ocultar elementos de Streamlit */
+    .stSidebar,
+    .stMainMenu,
+    .stDeployButton,
+    .stDebugButton {
+        display: none !important;
+    }
+    
+    /* Ocultar header por defecto pero dejar espacio */
     .stApp > header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-        padding: 2rem !important;
-        text-align: center !important;
-        border-radius: 0 0 1rem 1rem !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
-        position: relative !important;
-        overflow: hidden !important;
-        margin-bottom: 2rem !important;
-    }
-    
-    .stApp > header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1));
-        animation: shimmer 3s infinite;
-    }
-    
-    @keyframes shimmer {
-        0% { left: -100%; }
-        100% { left: 100%; }
-    }
-    
-    .stApp h1 {
-        color: white !important;
-        font-size: 2.5rem !important;
-        font-weight: 700 !important;
+        height: 0 !important;
+        padding: 0 !important;
         margin: 0 !important;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-        animation: glow 2s ease-in-out infinite alternate !important;
+        overflow: hidden !important;
     }
     
-    @keyframes glow {
-        0%, 100% { text-shadow: 0 0 8px rgba(255, 255, 255, 0.4); }
-        50% { text-shadow: 0 0 20px rgba(255, 255, 255, 0.6); }
-    }
-    
+    /* Aumentar padding superior para contenido */
     .block-container {
-        padding-top: 0 !important;
+        padding-top: 3rem !important;
         max-width: 900px !important;
         padding-left: 2rem !important;
         padding-right: 2rem !important;
     }
     
-    /* Forzar colores de texto */
-    .stTextInput > label,
-    .stNumberInput > label,
-    .stSelectbox > label {
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
         color: var(--text-primary) !important;
-        font-weight: 600 !important;
-        font-size: 0.95rem !important;
-        margin-bottom: 0.5rem !important;
     }
     
+    /* Form inputs oscuros */
     .stTextInput > div > div > input,
     .stNumberInput > div > div > input,
     .stSelectbox > div > div > select {
-        border-radius: var(--border-radius-lg) !important;
-        border: 2px solid var(--border-color) !important;
-        padding: 1rem 1.25rem !important;
-        font-size: 1rem !important;
         background: var(--bg-primary) !important;
+        border: 1px solid var(--border-color) !important;
         color: var(--text-primary) !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        border-radius: 0.5rem !important;
+        padding: 0.875rem 1rem !important;
+        font-size: 0.95rem !important;
+        transition: all 0.2s ease !important;
     }
     
     .stTextInput > div > div > input:focus,
     .stNumberInput > div > div > input:focus,
     .stSelectbox > div > div > select:focus {
         border-color: var(--primary-color) !important;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
         outline: none !important;
     }
     
-    .stButton > button {
-        border-radius: var(--border-radius-lg) !important;
+    .stTextInput > label,
+    .stNumberInput > label,
+    .stSelectbox > label {
+        color: var(--text-primary) !important;
         font-weight: 600 !important;
-        padding: 0.875rem 2rem !important;
-        font-size: 1rem !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
-        transition: all 0.3s ease !important;
-        position: relative !important;
-        overflow: hidden !important;
-        border: none !important;
+        font-size: 0.9rem !important;
+        margin-bottom: 0.5rem !important;
     }
     
-    .stButton > button::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%);
-        transition: all 0.5s ease;
+    /* Botones oscuros */
+    .stButton > button {
+        background: var(--primary-color) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 0.5rem !important;
+        padding: 0.875rem 1.5rem !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        transition: all 0.2s ease !important;
     }
     
     .stButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+        background: var(--primary-dark) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
     }
     
-    .stButton > button:hover::before {
-        left: 100%;
-    }
-    
-    /* Alertas con texto visible */
+    /* Alertas oscuras */
     .stAlert {
-        border-radius: var(--border-radius-lg) !important;
-        border-left: 4px solid !important;
-        font-size: 0.95rem !important;
-        line-height: 1.6 !important;
+        border-radius: 0.5rem !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--bg-card) !important;
+        margin-bottom: 1.5rem !important;
+        font-size: 0.9rem !important;
     }
     
     .stAlert p, .stAlert div, .stAlert span {
@@ -165,7 +122,7 @@ st.markdown(
         font-weight: 500 !important;
     }
     
-    /* Métricas modernas */
+    /* Métricas oscuras */
     [data-testid="stMetricValue"] {
         font-size: 1.5rem !important;
         color: var(--primary-color) !important;
@@ -178,37 +135,80 @@ st.markdown(
         font-size: 0.85rem !important;
     }
     
-    /* Page links con color visible */
+    /* Page links oscuros */
     a[data-testid="stPageLink-NavLink"] {
-        background: var(--primary-gradient) !important;
+        background: var(--primary-color) !important;
         color: white !important;
         padding: 0.75rem 1.5rem !important;
-        border-radius: var(--border-radius) !important;
+        border-radius: 0.5rem !important;
         text-decoration: none !important;
         font-weight: 500 !important;
         display: inline-block !important;
         margin-top: 0.5rem !important;
-        transition: all 0.3s ease !important;
+        transition: all 0.2s ease !important;
     }
     
     a[data-testid="stPageLink-NavLink"]:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        background: var(--primary-dark) !important;
+        transform: translateY(-1px) !important;
     }
     
-    /* Mobile adjustments */
+    /* Cards oscuras */
+    .metric-card {
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 0.75rem !important;
+        padding: 1.5rem !important;
+        text-align: center !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .metric-card:hover {
+        border-color: var(--primary-color) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .metric-icon {
+        font-size: 2rem !important;
+        margin-bottom: 0.5rem !important;
+        display: block !important;
+    }
+    
+    .metric-value {
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+        color: var(--text-primary) !important;
+        margin-bottom: 0.25rem !important;
+    }
+    
+    .metric-label {
+        font-size: 0.9rem !important;
+        color: var(--text-secondary) !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Headers */
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: var(--text-primary) !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Ocultar elementos de código HTML */
+    .stMarkdown > div > div > code,
+    .stMarkdown pre {
+        display: none !important;
+    }
+    
+    /* Mobile responsive */
     @media (max-width: 768px) {
-        .stApp > header {
-            padding: 1.5rem !important;
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
         }
         
-        .stApp h1 {
-            font-size: 2rem !important;
-        }
-        
-        .stButton > button {
-            padding: 0.75rem 1.5rem !important;
-            font-size: 0.875rem !important;
+        .metric-card {
+            padding: 1rem !important;
         }
     }
 </style>
@@ -216,12 +216,34 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Header moderno
+st.set_page_config(
+    page_title="ALTIVA - Configuración",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+    page_icon="⚙️",
+)
+
+# Logo ALTIVA
+logo_path = Path(__file__).parent.parent / "images" / "logo-altiva.png"
+logo_html = ""
+if logo_path.exists():
+    import base64
+
+    with open(logo_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+        logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 60px; height: 60px; border-radius: 0.75rem; margin-bottom: 1rem;">'
+
+# Header moderno oscuro con logo
 st.markdown(
-    """
-<div class="header-gradient">
-    <h1>⚙️ Configuración de Perfil</h1>
-    <p>AG-INICIAL: Perfil Fisiológico Base</p>
+    f"""
+<div style="text-align: center; margin-bottom: 2rem;">
+    {logo_html}
+    <h1 style="color: var(--text-primary); font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
+        ⚙️ Configuración de Perfil
+    </h1>
+    <p style="color: var(--text-secondary); font-size: 1rem; margin: 0;">
+        AG-INICIAL: Perfil Fisiológico Base
+    </p>
 </div>
 """,
     unsafe_allow_html=True,
@@ -235,7 +257,7 @@ if "user" not in st.session_state or st.session_state.user is None:
 
 user_id = str(st.session_state["user"]["_id"])
 
-# Obtener perfil existente (si existe)
+# Obtener perfil existente
 existing_profile = get_user_profile(user_id)
 is_editing = existing_profile is not None
 
@@ -243,12 +265,14 @@ is_editing = existing_profile is not None
 if is_editing:
     st.markdown(
         """
-    <div class="card-modern animate-fade-in">
-        <div class="card-title">
-            <span class="icon-xl">✏️</span>
-            <div>
-                <div class="font-semibold">Modo Edición</div>
-                <div class="text-sm text-muted">Modifica los datos que necesites actualizar</div>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">✏️</div>
+            <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
+                Modo Edición
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">
+                Modifica los datos que necesites actualizar
             </div>
         </div>
     </div>
@@ -258,12 +282,14 @@ if is_editing:
 else:
     st.markdown(
         """
-    <div class="card-modern animate-fade-in">
-        <div class="card-title">
-            <span class="icon-xl">✨</span>
-            <div>
-                <div class="font-semibold">Primer Uso</div>
-                <div class="text-sm text-muted">Completa tu perfil inicial</div>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">✨</div>
+            <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
+                Primer Uso
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">
+                Completa tu perfil inicial
             </div>
         </div>
     </div>
@@ -273,22 +299,9 @@ else:
 
 st.markdown("---")
 
-# Formulario con valores pre-cargados si existe perfil
+# Formulario
 with st.form("setup_form"):
-    st.markdown(
-        """
-    <div class="section-highlight animate-fade-in">
-        <div class="card-title">
-            <span class="icon-xl">📝</span>
-            <div>
-                <div class="font-semibold">Datos Personales</div>
-                <div class="text-sm text-muted">Información básica para personalizar tu experiencia</div>
-            </div>
-        </div>
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("### 📝 Datos Personales")
 
     col1, col2 = st.columns(2)
 
@@ -397,12 +410,12 @@ if existing_profile:
     st.markdown("---")
     st.markdown("### 📊 Tu Perfil Actual")
 
-    # Grid de métricas moderno
+    # Grid de métricas
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown(
             f"""
-        <div class="metric-card animate-fade-in">
+        <div class="metric-card">
             <div class="metric-icon">👤</div>
             <div class="metric-value">{existing_profile["edad"]}</div>
             <div class="metric-label">Edad (años)</div>
@@ -412,7 +425,7 @@ if existing_profile:
         )
         st.markdown(
             f"""
-        <div class="metric-card animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="metric-card">
             <div class="metric-icon">⚖️</div>
             <div class="metric-value">{existing_profile["peso"]}</div>
             <div class="metric-label">Peso (kg)</div>
@@ -423,7 +436,7 @@ if existing_profile:
     with col2:
         st.markdown(
             f"""
-        <div class="metric-card animate-fade-in" style="animation-delay: 0.2s;">
+        <div class="metric-card">
             <div class="metric-icon">🧬</div>
             <div class="metric-value">{existing_profile["sexo"]}</div>
             <div class="metric-label">Sexo</div>
@@ -433,7 +446,7 @@ if existing_profile:
         )
         st.markdown(
             f"""
-        <div class="metric-card animate-fade-in" style="animation-delay: 0.3s;">
+        <div class="metric-card">
             <div class="metric-icon">📏</div>
             <div class="metric-value">{existing_profile["altura"]}</div>
             <div class="metric-label">Altura (m)</div>
@@ -444,7 +457,7 @@ if existing_profile:
     with col3:
         st.markdown(
             f"""
-        <div class="metric-card animate-fade-in" style="animation-delay: 0.4s;">
+        <div class="metric-card">
             <div class="metric-icon">🏙️</div>
             <div class="metric-value">{existing_profile["ciudad"]}</div>
             <div class="metric-label">Ciudad</div>
@@ -454,7 +467,7 @@ if existing_profile:
         )
         st.markdown(
             f"""
-        <div class="metric-card animate-fade-in" style="animation-delay: 0.5s;">
+        <div class="metric-card">
             <div class="metric-icon">🏔️</div>
             <div class="metric-value">{existing_profile["altitud"]}</div>
             <div class="metric-label">Altitud (msnm)</div>
@@ -473,11 +486,10 @@ if existing_profile:
     with col4:
         st.markdown(
             f"""
-        <div class="metric-card success animate-fade-in">
+        <div class="metric-card">
             <div class="metric-icon">💧</div>
             <div class="metric-value">{existing_profile["agua_base_ml"]}</div>
             <div class="metric-label">Agua Diaria (ml)</div>
-            <div class="text-sm text-muted">Ajustada por altitud</div>
         </div>
         """,
             unsafe_allow_html=True,
@@ -485,11 +497,10 @@ if existing_profile:
     with col5:
         st.markdown(
             f"""
-        <div class="metric-card success animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="metric-card">
             <div class="metric-icon">😴</div>
             <div class="metric-value">{existing_profile["sueno_base_h"]}</div>
             <div class="metric-label">Sueño Diario (h)</div>
-            <div class="text-sm text-muted">Horas recomendadas</div>
         </div>
         """,
             unsafe_allow_html=True,
@@ -497,29 +508,18 @@ if existing_profile:
     with col6:
         st.markdown(
             f"""
-        <div class="metric-card animate-fade-in" style="animation-delay: 0.2s;">
+        <div class="metric-card">
             <div class="metric-icon">🏃</div>
             <div class="metric-value">{existing_profile.get("nivel_actividad", "medio").title()}</div>
             <div class="metric-label">Nivel de Actividad</div>
-            <div class="text-sm text-muted">Actividad física habitual</div>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
     st.markdown("---")
+    st.markdown("### 🚀 ¡Listo para monitorear!")
     st.markdown(
-        """
-    <div class="section-highlight animate-fade-in">
-        <div class="card-title">
-            <span class="icon-xl">📊</span>
-            <div>
-                <div class="font-semibold">¡Listo para monitorear!</div>
-                <div class="text-sm text-muted">Tu perfil está completo. Ahora puedes registrar tu estado diario en el Monitor</div>
-            </div>
-        </div>
-    </div>
-    """,
-        unsafe_allow_html=True,
+        "Tu perfil está completo. Ahora puedes registrar tu estado diario en el Monitor."
     )
     st.page_link("pages/3_Monitor.py", label="📊 Ir al Monitor", icon="📊")

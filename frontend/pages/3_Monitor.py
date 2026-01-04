@@ -11,17 +11,158 @@ from backend.agents.ag_fatiga import run_ag_fatiga
 from backend.agents.ag_plan import run_ag_plan
 from backend.services.database import get_user_profile, daily_states
 
-
-# --- CARGAR ESTILOS MODERNOS DE ALTIVA ---
-def load_modern_css():
-    """Carga el CSS moderno con animaciones y diseño mobile-first"""
-    css_file = ROOT_DIR / "frontend" / "styles" / "altiva.css"
-    if css_file.exists():
-        with open(css_file, "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-
-load_modern_css()
+# --- ESTILO OSCURO MODERNO CON AJUSTES ---
+st.markdown(
+    """
+<style>
+    /* Variables oscuras */
+    :root {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --bg-card: #1e293b;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --primary-color: #3b82f6;
+        --primary-dark: #2563eb;
+        --accent-color: #06b6d4;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --error-color: #ef4444;
+        --border-color: #334155;
+        --border-light: #475569;
+    }
+    
+    /* Ocultar elementos de Streamlit */
+    .stSidebar,
+    .stMainMenu,
+    .stDeployButton,
+    .stDebugButton {
+        display: none !important;
+    }
+    
+    /* Ocultar header por defecto pero dejar espacio */
+    .stApp > header {
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    /* Aumentar padding superior para contenido */
+    .block-container {
+        padding-top: 3rem !important;
+        max-width: 1200px !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+    }
+    
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+        color: var(--text-primary) !important;
+    }
+    
+    /* Form inputs oscuros */
+    .stTextInput > div > div > input,
+    .stNumberInput > div > div > input,
+    .stSelectbox > div > div > select {
+        background: var(--bg-primary) !important;
+        border: 1px solid var(--border-color) !important;
+        color: var(--text-primary) !important;
+        border-radius: 0.5rem !important;
+        padding: 0.875rem 1rem !important;
+        font-size: 0.95rem !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stNumberInput > div > div > input:focus,
+    .stSelectbox > div > div > select:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        outline: none !important;
+    }
+    
+    .stTextInput > label,
+    .stNumberInput > label,
+    .stSelectbox > label {
+        color: var(--text-primary) !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Botones oscuros */
+    .stButton > button {
+        background: var(--primary-color) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 0.5rem !important;
+        padding: 0.875rem 1.5rem !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .stButton > button:hover {
+        background: var(--primary-dark) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+    }
+    
+    /* Alertas oscuras */
+    .stAlert {
+        border-radius: 0.5rem !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--bg-card) !important;
+        margin-bottom: 1.5rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    .stAlert p, .stAlert div, .stAlert span {
+        color: var(--text-primary) !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Headers */
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: var(--text-primary) !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Progress bars oscuros */
+    .progress-modern {
+        background: var(--bg-tertiary) !important;
+        height: 8px !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+        margin: 0.5rem 0 !important;
+    }
+    
+    .progress-fill-modern {
+        height: 100% !important;
+        border-radius: 4px !important;
+        transition: width 0.3s ease !important;
+    }
+    
+    /* Ocultar elementos de código HTML */
+    .stMarkdown > div > div > code,
+    .stMarkdown pre {
+        display: none !important;
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 st.set_page_config(
     page_title="ALTIVA - Monitor",
@@ -38,12 +179,60 @@ def main():
 
     if not user_id:
         st.error("❌ Por favor, inicia sesión para continuar")
+        st.page_link("app.py", label="🔐 Ir a Login", icon="🔐")
         st.stop()
 
     profile = get_user_profile(user_id)
     if not profile:
         st.error("❌ Por favor, completa tu perfil primero")
+        st.page_link("pages/2_Setup.py", label="⚙️ Ir a Configuración", icon="⚙️")
         st.stop()
+
+    # Logo ALTIVA
+    logo_path = Path(__file__).parent.parent / "images" / "logo-altiva.png"
+    logo_html = ""
+    if logo_path.exists():
+        import base64
+
+        with open(logo_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode()
+            logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 60px; height: 60px; border-radius: 0.75rem; margin-bottom: 1rem;">'
+
+    # Header moderno oscuro con logo
+    st.markdown(
+        f"""
+    <div style="text-align: center; margin-bottom: 2rem;">
+        {logo_html}
+        <h1 style="color: var(--text-primary); font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
+            📊 Monitor Diario
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 1rem; margin: 0;">
+            AG-FISIO • AG-FATIGA • AG-PLAN
+        </p>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    # Información del usuario
+    st.markdown(
+        f"""
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="font-size: 2rem;">👤</div>
+            <div>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
+                    {user_data.get("username")}
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                    🏙️ {profile["ciudad"]} ({profile["altitud"]}m) • 🏔️ ALTIVA System
+                </div>
+            </div>
+        </div>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Cargar datos del día
     def cargar_datos_dia():
@@ -70,147 +259,135 @@ def main():
             }
         return {"agua": 0, "sueno": 0, "actividad": 0, "energia": 3}
 
-    datos = cargar_datos_dia()
+    # Session state para guardar datos
+    if "datos_dia" not in st.session_state:
+        st.session_state.datos_dia = cargar_datos_dia()
 
-    # Header moderno con gradiente
-    st.markdown(
-        """
-    <div class="header-gradient">
-        <h1>📊 Monitor Diario</h1>
-        <p>AG-FISIO • AG-FATIGA • AG-PLAN</p>
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
+    datos = st.session_state.datos_dia
 
-    # Información del usuario
-    st.markdown(
-        f"""
-    <div class="card-modern animate-fade-in">
-        <div class="card-title">
-            <span class="icon-xl">👤</span>
-            <div>
-                <div class="font-semibold">{user_data.get("username")}</div>
-                <div class="text-sm text-muted">🏙️ {profile["ciudad"]} ({profile["altitud"]}m) • 🏔️ ALTIVA System</div>
-            </div>
-        </div>
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
-
-    # Estado actual con métricas modernas
+    # Estado actual con métricas
     st.markdown("### 📈 Estado Actual")
 
-    # Grid responsivo de métricas
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        # Calcular porcentaje de agua vs meta
         agua_meta = profile.get("agua_base_ml", 2000)
         agua_pct = min((datos["agua"] / agua_meta) * 100, 100)
         agua_color = (
-            "success" if agua_pct >= 80 else "warning" if agua_pct >= 50 else "error"
+            "var(--success-color)"
+            if agua_pct >= 80
+            else "var(--warning-color)"
+            if agua_pct >= 50
+            else "var(--error-color)"
         )
 
         st.markdown(
             f"""
-        <div class="metric-card {agua_color} animate-fade-in">
-            <div class="metric-icon">💧</div>
-            <div class="metric-value">{datos["agua"]}ml</div>
-            <div class="metric-label">Hidratación</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; text-align: center; border-left: 4px solid {agua_color};">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">💧</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">{datos["agua"]}ml</div>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Hidratación</div>
             <div class="progress-modern">
-                <div class="progress-fill-modern" style="width: {agua_pct}%; background: var(--success-gradient) if agua_pct >= 80 else var(--warning-gradient) if agua_pct >= 50 else var(--error-gradient);"></div>
+                <div class="progress-fill-modern" style="width: {agua_pct}%; background: {agua_color};"></div>
             </div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">{agua_pct:.0f}% del objetivo</div>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
     with col2:
-        # Calcular porcentaje de sueño vs meta
         sueno_meta = profile.get("sueno_base_h", 8)
         sueno_pct = min((datos["sueno"] / sueno_meta) * 100, 100)
         sueno_color = (
-            "success" if sueno_pct >= 90 else "warning" if sueno_pct >= 70 else "error"
+            "var(--success-color)"
+            if sueno_pct >= 90
+            else "var(--warning-color)"
+            if sueno_pct >= 70
+            else "var(--error-color)"
         )
 
         st.markdown(
             f"""
-        <div class="metric-card {sueno_color} animate-fade-in" style="animation-delay: 0.1s;">
-            <div class="metric-icon">😴</div>
-            <div class="metric-value">{datos["sueno"]}h</div>
-            <div class="metric-label">Sueño</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; text-align: center; border-left: 4px solid {sueno_color};">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">😴</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">{datos["sueno"]}h</div>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Sueño</div>
             <div class="progress-modern">
-                <div class="progress-fill-modern" style="width: {sueno_pct}%; background: var(--success-gradient) if sueno_pct >= 90 else var(--warning-gradient) if sueno_pct >= 70 else var(--error-gradient);"></div>
+                <div class="progress-fill-modern" style="width: {sueno_pct}%; background: {sueno_color};"></div>
             </div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">{sueno_pct:.0f}% del objetivo</div>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
     with col3:
-        # Calcular porcentaje de actividad vs meta (30 min mínimo)
         actividad_meta = max(profile.get("actividad_minutos", 30), 30)
         actividad_pct = min((datos["actividad"] / actividad_meta) * 100, 100)
         actividad_color = (
-            "success"
+            "var(--success-color)"
             if actividad_pct >= 100
-            else "warning"
+            else "var(--warning-color)"
             if actividad_pct >= 50
-            else "error"
+            else "var(--error-color)"
         )
 
         st.markdown(
             f"""
-        <div class="metric-card {actividad_color} animate-fade-in" style="animation-delay: 0.2s;">
-            <div class="metric-icon">🏃</div>
-            <div class="metric-value">{datos["actividad"]}min</div>
-            <div class="metric-label">Actividad</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; text-align: center; border-left: 4px solid {actividad_color};">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏃</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">{datos["actividad"]}min</div>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Actividad</div>
             <div class="progress-modern">
-                <div class="progress-fill-modern" style="width: {actividad_pct}%; background: var(--success-gradient) if actividad_pct >= 100 else var(--warning-gradient) if actividad_pct >= 50 else var(--error-gradient);"></div>
+                <div class="progress-fill-modern" style="width: {actividad_pct}%; background: {actividad_color};"></div>
             </div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">{actividad_pct:.0f}% del objetivo</div>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
     with col4:
-        # Calcular color para energía
-        energia_color = (
-            "success"
-            if datos["energia"] >= 4
-            else "warning"
-            if datos["energia"] >= 3
-            else "error"
-        )
         energia_pct = (datos["energia"] / 5) * 100
+        energia_color = (
+            "var(--success-color)"
+            if datos["energia"] >= 4
+            else "var(--warning-color)"
+            if datos["energia"] >= 3
+            else "var(--error-color)"
+        )
 
         st.markdown(
             f"""
-        <div class="metric-card {energia_color} animate-fade-in" style="animation-delay: 0.3s;">
-            <div class="metric-icon">⚡</div>
-            <div class="metric-value">{datos["energia"]}/5</div>
-            <div class="metric-label">Energía</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; text-align: center; border-left: 4px solid {energia_color};">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚡</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">{datos["energia"]}/5</div>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Energía</div>
             <div class="progress-modern">
-                <div class="progress-fill-modern" style="width: {energia_pct}%; background: var(--success-gradient) if datos['energia'] >= 4 else var(--warning-gradient) if datos['energia'] >= 3 else var(--error-gradient);"></div>
+                <div class="progress-fill-modern" style="width: {energia_pct}%; background: {energia_color};"></div>
             </div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Nivel actual</div>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
-    # Sección de actualización de datos
+    # Formulario de actualización (sin botón de actualizar, solo análisis)
     st.markdown("### 📝 Actualizar Datos")
 
     st.markdown(
         """
-    <div class="section-highlight animate-fade-in">
-        <div class="card-title">
-            <span class="icon-xl">📊</span>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="font-size: 2rem;">📊</div>
             <div>
-                <div class="font-semibold">Registro Diario</div>
-                <div class="text-sm text-muted">Ingresa tus datos para análisis inteligente</div>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
+                    Registro Diario
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Los datos se guardan automáticamente al cambiar
+                </div>
             </div>
         </div>
     </div>
@@ -218,68 +395,85 @@ def main():
         unsafe_allow_html=True,
     )
 
-    # Formulario con diseño moderno
-    with st.form("monitor_form", clear_on_submit=False):
-        col_a, col_b = st.columns(2)
+    # Guardado automático de datos al cambiar
+    col_a, col_b = st.columns(2)
 
-        with col_a:
-            agua_total = st.number_input(
-                "💧 Agua consumida hoy (ml)",
-                min_value=0,
-                max_value=10000,
-                value=int(datos["agua"]),
-                step=100,
-                help="Cantidad total de agua ingerida hoy",
-            )
-            sueno_hoy = st.number_input(
-                "😴 Horas de sueño",
-                min_value=0.0,
-                max_value=24.0,
-                value=float(datos["sueno"]),
-                step=0.5,
-                help="Horas de sueño la noche anterior",
-            )
-
-        with col_b:
-            actividad_hoy = st.number_input(
-                "🏃 Actividad física (minutos)",
-                min_value=0,
-                max_value=300,
-                value=int(datos["actividad"]),
-                step=5,
-                help="Minutos de actividad física realizada hoy",
-            )
-            energia_labels = [
-                "1 - Muy bajo",
-                "2 - Bajo",
-                "3 - Normal",
-                "4 - Bueno",
-                "5 - Excelente",
-            ]
-            energia_actual = st.select_slider(
-                "⚡ Nivel de energía",
-                options=energia_labels,
-                value=energia_labels[datos["energia"] - 1],
-                help="¿Cómo te sientes de energía hoy?",
-            )
-
-        # Botón moderno
-        submitted = st.form_submit_button(
-            "🔄 Actualizar y Analizar", use_container_width=True, type="primary"
+    with col_a:
+        nueva_agua = st.number_input(
+            "💧 Agua consumida hoy (ml)",
+            min_value=0,
+            max_value=10000,
+            value=int(datos["agua"]),
+            step=100,
+            help="Cantidad total de agua ingerida hoy",
+        )
+        nueva_sueno = st.number_input(
+            "😴 Horas de sueño",
+            min_value=0.0,
+            max_value=24.0,
+            value=float(datos["sueno"]),
+            step=0.5,
+            help="Horas de sueño la noche anterior",
         )
 
-    if submitted:
-        # Parsear nivel de energía
-        energia_valor = int(energia_actual.split(" - ")[0])
+    with col_b:
+        nueva_actividad = st.number_input(
+            "🏃 Actividad física (minutos)",
+            min_value=0,
+            max_value=300,
+            value=int(datos["actividad"]),
+            step=5,
+            help="Minutos de actividad física realizada hoy",
+        )
+        energia_labels = [
+            "1 - Muy bajo",
+            "2 - Bajo",
+            "3 - Normal",
+            "4 - Bueno",
+            "5 - Excelente",
+        ]
+        nueva_energia_actual = st.select_slider(
+            "⚡ Nivel de energía",
+            options=energia_labels,
+            value=energia_labels[datos["energia"] - 1],
+            help="¿Cómo te sientes de energía hoy?",
+        )
+
+    # Guardar datos automáticamente si cambian
+    if (
+        nueva_agua != datos["agua"]
+        or nueva_sueno != datos["sueno"]
+        or nueva_actividad != datos["actividad"]
+        or int(nueva_energia_actual.split(" - ")[0]) != datos["energia"]
+    ):
+        st.session_state.datos_dia = {
+            "agua": nueva_agua,
+            "sueno": nueva_sueno,
+            "actividad": nueva_actividad,
+            "energia": int(nueva_energia_actual.split(" - ")[0]),
+        }
+
+        st.success("✅ Datos guardados automáticamente")
+
+    # Botón de análisis
+    st.markdown("---")
+
+    if st.button(
+        "🔄 Analizar Estado",
+        use_container_width=True,
+        type="primary",
+        key="analizar_btn",
+    ):
+        energia_valor = int(nueva_energia_actual.split(" - ")[0])
 
         with st.spinner("🤖 Analizando tu estado..."):
             # Actualizar estado fisiológico
             estado_fisio = run_ag_fisio(
                 user_id,
                 {
-                    "agua_consumida_ml": agua_total,
-                    "horas_sueno": sueno_hoy,
-                    "actividad_minutos": actividad_hoy,
+                    "agua_consumida_ml": nueva_agua,
+                    "horas_sueno": nueva_sueno,
+                    "actividad_minutos": nueva_actividad,
                     "nivel_energia": energia_valor,
                 },
             )
@@ -305,37 +499,34 @@ def main():
 
         st.success("✅ ¡Análisis completado!")
 
-        # Mostrar resultados con diseño moderno
+        # Mostrar resultados
         st.markdown("---")
         st.markdown("### 🎯 Resultados del Análisis")
 
-        # IFA con diseño moderno
+        # IFA
         ifa = resultado_fatiga.get("ifa", 0)
         nivel = resultado_fatiga.get("nivel_fatiga", "Medio")
 
-        # Determinar estilo del IFA
         if ifa < 34:
-            bg_gradient = "var(--success-gradient)"
+            bg_gradient = "linear-gradient(135deg, #10b981 0%, #059669 100%)"
             emoji = "🟢"
             estado = "Óptimo"
         elif ifa < 67:
-            bg_gradient = "var(--warning-gradient)"
+            bg_gradient = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
             emoji = "🟡"
             estado = "Moderado"
         else:
-            bg_gradient = "var(--error-gradient)"
+            bg_gradient = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
             emoji = "🔴"
             estado = "Crítico"
 
         st.markdown(
             f"""
-        <div class="card-modern animate-slide-in" style="background: {bg_gradient}; color: white; border: none;">
-            <div style="text-align: center;">
-                <h3 style="color: white; margin: 0 0 1rem 0;">🎯 Índice de Fatiga en Altura (IFA)</h3>
-                <div style="font-size: 3rem; font-weight: bold; margin: 1rem 0;">{emoji} {ifa}/100</div>
-                <div style="font-size: 1.2rem; font-weight: 600; color: white;">Estado: {estado}</div>
-                <div style="font-size: 1rem; margin-top: 0.5rem; color: rgba(255,255,255,0.9);">{nivel}</div>
-            </div>
+        <div style="background: {bg_gradient}; color: white; border-radius: 1rem; padding: 2rem; text-align: center; margin: 2rem 0; border: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
+            <h3 style="color: white; margin: 0 0 1rem 0;">🎯 Índice de Fatiga en Altura (IFA)</h3>
+            <div style="font-size: 3rem; font-weight: bold; margin: 1rem 0;">{emoji} {ifa}/100</div>
+            <div style="font-size: 1.3rem; font-weight: 600; color: white; margin-bottom: 0.5rem;">Estado: {estado}</div>
+            <div style="font-size: 1rem; color: rgba(255,255,255,0.9);">{nivel}</div>
         </div>
         """,
             unsafe_allow_html=True,
@@ -348,13 +539,13 @@ def main():
         )
         st.markdown(
             f"""
-        <div class="card-modern animate-fade-in">
-            <div class="card-header">
-                <h4><span class="icon-lg">📈</span> Justificación del IFA</h4>
-            </div>
-            <div class="card-content">
-                <p class="text-secondary">{justificacion}</p>
-            </div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem;">
+            <h4 style="color: var(--text-primary); font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">
+                📈 Justificación del IFA
+            </h4>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; margin: 0;">
+                {justificacion}
+            </p>
         </div>
         """,
             unsafe_allow_html=True,
@@ -367,15 +558,14 @@ def main():
 
             st.markdown(
                 """
-            <div class="plan-header animate-slide-in">
-                <h4>🤖 AG-PLAN: Recomendaciones Personalizadas</h4>
-                <p>Plan generado automáticamente según tu estado actual y perfil</p>
+            <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border-radius: 1rem; padding: 2rem; text-align: center; margin-bottom: 2rem; border: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
+                <h4 style="color: white; margin: 0 0 0.5rem 0;">🤖 AG-PLAN: Recomendaciones Personalizadas</h4>
+                <p style="color: rgba(255,255,255,0.9); margin: 0;">Plan generado automáticamente según tu estado actual y perfil</p>
             </div>
             """,
                 unsafe_allow_html=True,
             )
 
-            # Grid de secciones del plan
             sections = []
             if plan_data.get("recomendaciones_inmediatas"):
                 sections.append(
@@ -413,8 +603,10 @@ def main():
                     with cols[i % 2]:
                         st.markdown(
                             f"""
-                        <div class="plan-section animate-fade-in" style="animation-delay: {i * 0.1}s;">
-                            <h5><span class="icon-lg">{icon}</span> {title}</h5>
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem;">
+                            <h5 style="color: var(--text-primary); font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">
+                                {icon} {title}
+                            </h5>
                         </div>
                         """,
                             unsafe_allow_html=True,
@@ -423,7 +615,7 @@ def main():
                         for item in items:
                             st.markdown(
                                 f"""
-                            <div class="plan-item">
+                            <div style="background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
                                 {item}
                             </div>
                             """,
