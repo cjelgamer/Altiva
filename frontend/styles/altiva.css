@@ -1,4 +1,4 @@
-/* CSS ALTIVA - Diseño Mobile-First con Buen Contraste */
+/* CSS ALTIVA - Diseño Moderno Mobile-First con Animaciones */
 
 /* =================================
    VARIABLES DE COLOR Y TIPOGRAFÍA
@@ -675,4 +675,437 @@
 
 .stButton[kind="secondary"] button {
     color: var(--text-primary) !important;
+}
+
+/* =================================
+   DISEÑO MODERNO MOBILE-FIRST
+==================================== */
+
+/* Colores modernos vibrantes */
+:root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    --error-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    
+    --primary-color: #2563eb;
+    --success-color: #16a34a;
+    --warning-color: #ea580c;
+    --error-color: #dc2626;
+    
+    --text-primary: #1e293b;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
+    
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    
+    --border-radius: 1rem;
+    --border-radius-sm: 0.5rem;
+    --border-radius-lg: 1.5rem;
+    --border-radius-xl: 2rem;
+    
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Iconos grandes */
+.icon-large {
+    font-size: 3rem !important;
+    margin-bottom: 0.5rem;
+    display: block;
+    text-align: center;
+}
+
+/* Cards modernas con bordes redondeados */
+.card-modern {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid #e2e8f0;
+    transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.card-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--primary-gradient);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.card-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-modern:hover::before {
+    transform: translateX(0);
+}
+
+/* Métricas con diseño moderno */
+.metric-card {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all var(--transition-normal);
+    position: relative;
+}
+
+.metric-card.success {
+    border-color: var(--success-color);
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
+}
+
+.metric-card.warning {
+    border-color: var(--warning-color);
+    background: linear-gradient(135deg, rgba(234, 88, 12, 0.05) 0%, rgba(217, 119, 6, 0.05) 100%);
+}
+
+.metric-card.error {
+    border-color: var(--error-color);
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(185, 28, 28, 0.05) 100%);
+}
+
+.metric-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Input fields modernos */
+.input-modern {
+    border-radius: var(--border-radius) !important;
+    border: 2px solid #e2e8f0 !important;
+    padding: 0.875rem 1rem !important;
+    font-size: 1rem !important;
+    transition: var(--transition-fast);
+    background: var(--bg-primary) !important;
+}
+
+.input-modern:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    outline: none !important;
+}
+
+/* Botones modernos */
+.btn-modern {
+    border-radius: var(--border-radius) !important;
+    font-weight: 600 !important;
+    padding: 0.75rem 1.5rem !important;
+    transition: var(--transition-normal) !important;
+    border: none !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.btn-modern:hover::before {
+    opacity: 1;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-modern:active {
+    transform: translateY(0);
+}
+
+/* Progress bars modernas */
+.progress-modern {
+    background: #e5e7eb;
+    height: 0.75rem;
+    border-radius: var(--border-radius-xl);
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill-modern {
+    height: 100%;
+    background: var(--primary-gradient);
+    border-radius: var(--border-radius-xl);
+    transition: width var(--transition-slow);
+    position: relative;
+}
+
+.progress-fill-modern::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+}
+
+/* Paneles de carga */
+.loading-panel {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    text-align: center;
+    border: 2px dashed #cbd5e1;
+    margin: 2rem 0;
+}
+
+.loading-spinner {
+    font-size: 3rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rewrite(360deg); }
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+.animate-slide-in {
+    animation: slideInFromTop 0.3s ease-out;
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+    .stColumns {
+        gap: 1rem !important;
+    }
+    
+    .metric-card {
+        padding: 1rem;
+    }
+    
+    .card-modern {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-modern {
+        width: 100% !important;
+        font-size: 0.875rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .stColumns {
+        gap: 0.5rem !important;
+        flex-direction: column !important;
+    }
+    
+    .icon-large {
+        font-size: 2rem !important;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem !important;
+    }
+    
+    .card-modern {
+        padding: 0.75rem;
+    }
+}
+
+/* Componentes de Streamlit mejorados */
+.stSelectbox > div > div > select {
+    border-radius: var(--border-radius) !important;
+    border: 2px solid #e2e8f0 !important;
+    padding: 0.875rem 1rem !important;
+    font-size: 1rem !important;
+    background: var(--bg-primary) !important;
+}
+
+.stSelectbox > div > div > select:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    outline: none !important;
+}
+
+/* Headers grandes */
+.header-gradient {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    text-align: center;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1));
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Secciones destacadas */
+.section-highlight {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    margin: 2rem 0;
+    border-left: 4px solid var(--primary-color);
+    position: relative;
+}
+
+/* Grid responsivo mejorado */
+.responsive-grid-modern {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+@media (max-width: 768px) {
+    .responsive-grid-modern {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .responsive-grid-modern {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+}
+
+/* Badges modernos */
+.badge-modern {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.badge-warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.badge-error {
+    background: var(--error-color);
+    color: white;
+}
+
+/* Efectos hover mejorados */
+.hover-lift {
+    transition: all var(--transition-normal);
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Fondo con patrón sutil */
+.pattern-background {
+    background-color: var(--bg-secondary);
+    background-image: 
+        radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(124, 58, 237, 0.03) 0%, transparent 50%);
+}
+
+/* Logo con animación */
+.logo-animated {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 3s infinite;
 }
