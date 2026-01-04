@@ -7,6 +7,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT_DIR))
 
 from backend.agents.ag_fisio import run_ag_fisio
+from backend.agents.ag_fatiga import run_ag_fatiga
 from backend.services.database import get_user_profile, daily_states
 
 st.set_page_config(
@@ -267,7 +268,8 @@ if "agua_acumulada" not in st.session_state:
 # Función para guardar automáticamente
 def auto_guardar():
     try:
-        run_ag_fisio(
+        # 1. Ejecutar AG-FISIO (determinístico)
+        estado_fisio = run_ag_fisio(
             user_id,
             {
                 "agua_consumida_ml": st.session_state.agua_acumulada,
@@ -276,7 +278,23 @@ def auto_guardar():
                 "nivel_energia": st.session_state.energia_actual
             }
         )
-    except:
+        
+        # 2. Ejecutar AG-FATIGA (LLM) solo si hay datos significativos
+        if st.session_state.agua_acumulada > 0 or st.session_state.sueno_total > 0:
+            try:
+                resultado_fatiga = run_ag_fatiga(
+                    user_id=user_id,
+                    estado_fisio=estado_fisio,
+                    actividad_mental=st.session_state.get("actividad_mental"),
+                    estado_emocional=st.session_state.get("estado_emocional")
+                )
+                # Guardar resultado en session_state para mostrarlo
+                st.session_state.ultimo_analisis_fatiga = resultado_fatiga
+            except Exception as e:
+                print(f"Error en AG-FATIGA: {e}")
+                st.session_state.ultimo_analisis_fatiga = None
+    except Exception as e:
+        print(f"Error en auto_guardar: {e}")
         pass
 
 # --- HEADER ---
@@ -462,3 +480,69 @@ with col_right:
         st.info(f"🏃 Faltan {actividad_minima - st.session_state.actividad_total} min")
     if not (deshidratado or falta_sueno) and st.session_state.actividad_total >= actividad_minima:
         st.success("✓ Cumpliendo objetivos")
+    
+    # === ANÁLISIS DE FATIGA CON LLM ===
+    st.markdown("---")
+    st.markdown("### 🧠 Análisis de Fatiga (IA)")
+    
+    # Botón para analizar con contexto adicional
+    with st.expander("📝 Agregar contexto adicional (opcional)"):
+        actividad_mental = st.text_input(
+            "Actividad mental/trabajo",
+            value=st.session_state.get("actividad_mental", ""),
+            placeholder="Ej: Estudiando 4 horas para examen",
+            key="actividad_mental_input"
+        )
+        if actividad_mental != st.session_state.get("actividad_mental", ""):
+            st.session_state.actividad_mental = actividad_mental
+        
+        estado_emocional = st.text_input(
+            "Estado emocional",
+            value=st.session_state.get("estado_emocional", ""),
+            placeholder="Ej: Estresado, Tranquilo, Ansioso",
+            key="estado_emocional_input"
+        )
+        if estado_emocional != st.session_state.get("estado_emocional", ""):
+            st.session_state.estado_emocional = estado_emocional
+    
+    if st.button("🔍 Analizar Fatiga con IA", use_container_width=True, type="primary"):
+        with st.spinner("Analizando tu estado con IA..."):
+            auto_guardar()
+            st.rerun()
+    
+    # Mostrar último análisis si existe
+    if "ultimo_analisis_fatiga" in st.session_state and st.session_state.ultimo_analisis_fatiga:
+        analisis = st.session_state.ultimo_analisis_fatiga
+        
+        # IFA con color
+        ifa = analisis.get("ifa", 0)
+        nivel = analisis.get("nivel_fatiga", "Medio")
+        
+        if ifa < 34:
+            ifa_color = "#27ae60"  # Verde
+            ifa_emoji = "🟢"
+        elif ifa < 67:
+            ifa_color = "#f39c12"  # Naranja
+            ifa_emoji = "🟡"
+        else:
+            ifa_color = "#e74c3c"  # Rojo
+            ifa_emoji = "🔴"
+        
+        st.markdown(f"""
+        <div style="background: white; padding: 1.5rem; border-radius: 12px; border-left: 4px solid {ifa_color}; margin: 1rem 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4 style="margin: 0; color: #2c3e50;">Índice de Fatiga en Altura (IFA)</h4>
+                <div style="font-size: 2rem; font-weight: 600; color: {ifa_color};">{ifa_emoji} {ifa}/100</div>
+            </div>
+            <div style="background: #ecf0f1; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 1rem;">
+                <div style="background: {ifa_color}; height: 100%; width: {ifa}%; transition: width 0.3s;"></div>
+            </div>
+            <div style="color: #2c3e50; font-weight: 500; margin-bottom: 0.5rem;">
+                Nivel de Fatiga: <span style="color: {ifa_color};">{nivel}</span>
+            </div>
+            <div style="color: #5a6c7d; font-size: 0.95rem; line-height: 1.6;">
+                {analisis.get("justificacion", "Sin justificación disponible")}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
