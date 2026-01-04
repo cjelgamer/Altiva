@@ -162,8 +162,12 @@ Esto garantiza trazabilidad y claridad entre agentes.
 
 ## 📌 Estado del Proyecto
 
-- MVP funcional
-- AG-INICIAL implementado
+- MVP funcional completo
+- AG-INICIAL implementado ✅
+- AG-FISIO implementado ✅
+- AG-FATIGA implementado ✅
+- AG-PLAN implementado ✅
 - Sistema de login operativo
-- Arquitectura multiagente lista para expansión
+- Flujo multiagente completo: AG-FISIO → AG-FATIGA → AG-PLAN
+- Integración con frontend funcional
 
