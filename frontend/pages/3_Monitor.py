@@ -2,6 +2,7 @@ import streamlit as st
 import sys
 from pathlib import Path
 from datetime import datetime
+from pytz import timezone
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT_DIR))
@@ -53,7 +54,7 @@ st.markdown(
     /* Aumentar padding superior para contenido */
     .block-container {
         padding-top: 3rem !important;
-        max-width: 1200px !important;
+        max-width: 1400px !important;
         padding-left: 2rem !important;
         padding-right: 2rem !important;
     }
@@ -131,6 +132,108 @@ st.markdown(
         font-weight: 700 !important;
     }
     
+    /* Sección izquierda (Fatiga) */
+    .analysis-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        padding: 2rem;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .analysis-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    }
+    
+    .ifa-display {
+        text-align: center;
+        margin: 2rem 0;
+    }
+    
+    .ifa-score {
+        font-size: 4rem;
+        font-weight: 800;
+        margin: 1rem 0;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    
+    .ifa-status {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0.5rem 0;
+    }
+    
+    .ifa-description {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-top: 1rem;
+    }
+    
+    /* Sección derecha (Plan) */
+    .plan-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        padding: 2rem;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .plan-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--success-color), var(--warning-color));
+    }
+    
+    .chat-container {
+        height: 400px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin: 1rem 0;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+    
+    .chat-message {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        background: var(--bg-secondary);
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .chat-message.bot {
+        background: var(--bg-tertiary);
+        border-left-color: var(--success-color);
+    }
+    
+    .chat-time {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        margin-bottom: 0.5rem;
+    }
+    
     /* Progress bars oscuros */
     .progress-modern {
         background: var(--bg-tertiary) !important;
@@ -157,6 +260,15 @@ st.markdown(
         .block-container {
             padding-left: 1rem !important;
             padding-right: 1rem !important;
+        }
+        
+        .analysis-section,
+        .plan-section {
+            padding: 1.5rem;
+        }
+        
+        .chat-container {
+            height: 300px;
         }
     }
 </style>
@@ -198,10 +310,15 @@ def main():
             encoded_string = base64.b64encode(image_file.read()).decode()
             logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 60px; height: 60px; border-radius: 0.75rem; margin-bottom: 1rem;">'
 
-    # Header moderno oscuro con logo
+    # Header moderno oscuro con logo y botón de perfil
     st.markdown(
         f"""
-    <div style="text-align: center; margin-bottom: 2rem;">
+    <div style="text-align: center; margin-bottom: 2rem; position: relative;">
+        <div style="position: absolute; top: 0; left: 0;">
+            <button onclick="window.location.href='pages/2_Setup.py'" style="background: var(--primary-color); color: white; border: none; border-radius: 0.5rem; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s ease;" onmouseover="this.style.background='var(--primary-dark)'" onmouseout="this.style.background='var(--primary-color)'">
+                👤 Perfil
+            </button>
+        </div>
         {logo_html}
         <h1 style="color: var(--text-primary); font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
             📊 Monitor Diario
@@ -214,6 +331,10 @@ def main():
         unsafe_allow_html=True,
     )
 
+    # Botón funcional de Perfil
+    if st.button("👤 Perfil", key="perfil_btn", help="Ir a configuración de perfil"):
+        st.switch_page("pages/2_Setup.py")
+
     # Información del usuario
     st.markdown(
         f"""
@@ -222,10 +343,10 @@ def main():
             <div style="font-size: 2rem;">👤</div>
             <div>
                 <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
-                    {user_data.get("username")}
+                    {user_data.get("username") if user_data else "Usuario"}
                 </div>
                 <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                    🏙️ {profile["ciudad"]} ({profile["altitud"]}m) • 🏔️ ALTIVA System
+                    🏙️ {profile.get("ciudad", "N/A")} ({profile.get("altitud", 0)}m) • 🏔️ ALTIVA System
                 </div>
             </div>
         </div>
@@ -263,9 +384,13 @@ def main():
     if "datos_dia" not in st.session_state:
         st.session_state.datos_dia = cargar_datos_dia()
 
+    # Session state para resultados del análisis
+    if "analisis_resultados" not in st.session_state:
+        st.session_state.analisis_resultados = None
+
     datos = st.session_state.datos_dia
 
-    # Estado actual con métricas
+    # Sección 1: Estado Actual y Datos
     st.markdown("### 📈 Estado Actual")
 
     col1, col2, col3, col4 = st.columns(4)
@@ -439,21 +564,39 @@ def main():
             help="¿Cómo te sientes de energía hoy?",
         )
 
-    # Guardar datos automáticamente si cambian
+    # Guardar datos automáticamente si cambian y guardar en MongoDB
     if (
         nueva_agua != datos["agua"]
         or nueva_sueno != datos["sueno"]
         or nueva_actividad != datos["actividad"]
         or int(nueva_energia_actual.split(" - ")[0]) != datos["energia"]
     ):
+        energia_valor = int(nueva_energia_actual.split(" - ")[0])
+
+        # Actualizar session state
         st.session_state.datos_dia = {
             "agua": nueva_agua,
             "sueno": nueva_sueno,
             "actividad": nueva_actividad,
-            "energia": int(nueva_energia_actual.split(" - ")[0]),
+            "energia": energia_valor,
         }
 
-        st.success("✅ Datos guardados automáticamente")
+        # Guardar en MongoDB usando AG-FISIO
+        with st.spinner("💾 Guardando en MongoDB..."):
+            try:
+                run_ag_fisio(
+                    user_id,
+                    {
+                        "agua_consumida_ml": nueva_agua,
+                        "horas_sueno": nueva_sueno,
+                        "actividad_minutos": nueva_actividad,
+                        "nivel_energia": energia_valor,
+                    },
+                )
+                st.success("✅ Datos guardados en MongoDB automáticamente")
+            except Exception as e:
+                st.error(f"❌ Error al guardar en MongoDB: {str(e)}")
+        st.rerun()
 
     # Botón de análisis
     st.markdown("---")
@@ -495,134 +638,179 @@ def main():
                 ).sort("timestamp", -1)
             )
 
-            resultado_plan = run_ag_plan(user_id, resultado_fatiga, historial_dia)
+            resultado_plan = (
+                run_ag_plan(user_id, resultado_fatiga, historial_dia)
+                if resultado_fatiga
+                else {"plan": {}}
+            )
+
+            # Guardar resultados en session state
+            st.session_state.analisis_resultados = {
+                "fatiga": resultado_fatiga,
+                "plan": resultado_plan,
+            }
 
         st.success("✅ ¡Análisis completado!")
+        st.rerun()
 
-        # Mostrar resultados
+    # Sección 2: Resultados del Análisis (dos columnas)
+    if st.session_state.analisis_resultados:
         st.markdown("---")
         st.markdown("### 🎯 Resultados del Análisis")
 
-        # IFA
-        ifa = resultado_fatiga.get("ifa", 0)
-        nivel = resultado_fatiga.get("nivel_fatiga", "Medio")
+        resultados = st.session_state.analisis_resultados
+        resultado_fatiga = resultados["fatiga"]
+        resultado_plan = resultados["plan"]
 
-        if ifa < 34:
-            bg_gradient = "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-            emoji = "🟢"
-            estado = "Óptimo"
-        elif ifa < 67:
-            bg_gradient = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
-            emoji = "🟡"
-            estado = "Moderado"
-        else:
-            bg_gradient = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
-            emoji = "🔴"
-            estado = "Crítico"
+        # Dividir en dos columnas
+        left_col, right_col = st.columns(2)
 
-        st.markdown(
-            f"""
-        <div style="background: {bg_gradient}; color: white; border-radius: 1rem; padding: 2rem; text-align: center; margin: 2rem 0; border: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
-            <h3 style="color: white; margin: 0 0 1rem 0;">🎯 Índice de Fatiga en Altura (IFA)</h3>
-            <div style="font-size: 3rem; font-weight: bold; margin: 1rem 0;">{emoji} {ifa}/100</div>
-            <div style="font-size: 1.3rem; font-weight: 600; color: white; margin-bottom: 0.5rem;">Estado: {estado}</div>
-            <div style="font-size: 1rem; color: rgba(255,255,255,0.9);">{nivel}</div>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-        # Justificación
-        st.markdown("### 📊 Análisis Detallado")
-        justificacion = resultado_fatiga.get(
-            "justificacion", "Sin justificación disponible"
-        )
-        st.markdown(
-            f"""
-        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem;">
-            <h4 style="color: var(--text-primary); font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">
-                📈 Justificación del IFA
-            </h4>
-            <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; margin: 0;">
-                {justificacion}
-            </p>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-        # Plan de recuperación
-        plan_data = resultado_plan.get("plan", {})
-        if plan_data:
-            st.markdown("### 🎯 Plan de Recuperación Inteligente")
-
+        with left_col:
+            # Sección izquierda: Análisis de Fatiga
             st.markdown(
                 """
-            <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border-radius: 1rem; padding: 2rem; text-align: center; margin-bottom: 2rem; border: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
-                <h4 style="color: white; margin: 0 0 0.5rem 0;">🤖 AG-PLAN: Recomendaciones Personalizadas</h4>
-                <p style="color: rgba(255,255,255,0.9); margin: 0;">Plan generado automáticamente según tu estado actual y perfil</p>
+            <div class="analysis-section">
+                <h3 style="color: var(--text-primary); margin-bottom: 1.5rem;">
+                    🧠 Análisis de Fatiga
+                </h3>
             </div>
             """,
                 unsafe_allow_html=True,
             )
 
-            sections = []
-            if plan_data.get("recomendaciones_inmediatas"):
-                sections.append(
-                    (
-                        "🚀",
-                        "Recomendaciones Inmediatas",
-                        plan_data.get("recomendaciones_inmediatas", []),
-                    )
-                )
+            # IFA
+            ifa = resultado_fatiga.get("ifa", 0) if resultado_fatiga else 0
+            nivel = (
+                resultado_fatiga.get("nivel_fatiga", "Medio")
+                if resultado_fatiga
+                else "Medio"
+            )
 
-            if plan_data.get("horarios_optimos"):
-                horarios_text = [
-                    f"**{tipo.title()}:** {horario}"
-                    for tipo, horario in plan_data.get("horarios_optimos", {}).items()
-                ]
-                sections.append(("⏰", "Horarios Óptimos", horarios_text))
-
-            if plan_data.get("pausas_activas"):
-                sections.append(
-                    ("🤸", "Pausas Activas", plan_data.get("pausas_activas", []))
-                )
-
-            if plan_data.get("consejos_altitud"):
-                sections.append(
-                    (
-                        "🏔️",
-                        "Consejos para Altitud",
-                        plan_data.get("consejos_altitud", []),
-                    )
-                )
-
-            if sections:
-                cols = st.columns(len(sections) if len(sections) <= 2 else 2)
-                for i, (icon, title, items) in enumerate(sections):
-                    with cols[i % 2]:
-                        st.markdown(
-                            f"""
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem;">
-                            <h5 style="color: var(--text-primary); font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">
-                                {icon} {title}
-                            </h5>
-                        </div>
-                        """,
-                            unsafe_allow_html=True,
-                        )
-
-                        for item in items:
-                            st.markdown(
-                                f"""
-                            <div style="background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
-                                {item}
-                            </div>
-                            """,
-                                unsafe_allow_html=True,
-                            )
+            if ifa < 34:
+                ifa_color = "var(--success-color)"
+                emoji = "🟢"
+                estado = "Óptimo"
+            elif ifa < 67:
+                ifa_color = "var(--warning-color)"
+                emoji = "🟡"
+                estado = "Moderado"
             else:
-                st.info("ℹ️ No hay recomendaciones específicas para tu estado actual")
+                ifa_color = "var(--error-color)"
+                emoji = "🔴"
+                estado = "Crítico"
+
+            st.markdown(
+                f"""
+            <div class="analysis-section">
+                <div class="ifa-display">
+                    <h4 style="color: var(--text-primary); margin-bottom: 1rem;">Índice de Fatiga en Altura</h4>
+                    <div class="ifa-score" style="color: {ifa_color};">{ifa}/100</div>
+                    <div class="ifa-status">{emoji} {estado}</div>
+                </div>
+                
+                <div style="margin-top: 2rem;">
+                    <h4 style="color: var(--text-primary); margin-bottom: 1rem;">📈 Justificación del Análisis</h4>
+                    <div class="ifa-description">
+                        {resultado_fatiga.get("justificacion", "Sin justificación disponible") if resultado_fatiga else "Sin justificación disponible"}
+                    </div>
+                </div>
+            </div>
+            """,
+                unsafe_allow_html=True,
+            )
+
+        with right_col:
+            # Sección derecha: AG-PLAN con Chat
+            st.markdown(
+                """
+            <div class="plan-section">
+                <h3 style="color: var(--text-primary); margin-bottom: 1.5rem;">
+                    🤖 AG-PLAN: Plan de Recuperación
+                </h3>
+            </div>
+            """,
+                unsafe_allow_html=True,
+            )
+
+            # Chat del plan
+            plan_data = resultado_plan.get("plan", {}) if resultado_plan else {}
+
+            chat_content = ""
+            if plan_data:
+                chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
+                chat_content += f'<div class="chat-message bot">🏔️ Plan generado según tu IFA: {ifa}/100 ({estado})</div>'
+
+                if plan_data.get("recomendaciones_inmediatas"):
+                    chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
+                    chat_content += f'<div class="chat-message bot">🚀 Recomendaciones Inmediatas:</div>'
+                    for rec in plan_data.get("recomendaciones_inmediatas", []):
+                        chat_content += f'<div class="chat-message">  • {rec}</div>'
+
+                if plan_data.get("horarios_optimos"):
+                    chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
+                    chat_content += (
+                        f'<div class="chat-message bot">⏰ Horarios Óptimos:</div>'
+                    )
+                    for tipo, horario in plan_data.get("horarios_optimos", {}).items():
+                        chat_content += f'<div class="chat-message">  • **{tipo.title()}:** {horario}</div>'
+
+                if plan_data.get("pausas_activas"):
+                    chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
+                    chat_content += (
+                        f'<div class="chat-message bot">🤸 Pausas Activas:</div>'
+                    )
+                    for pausa in plan_data.get("pausas_activas", []):
+                        chat_content += f'<div class="chat-message">  • {pausa}</div>'
+
+                if plan_data.get("consejos_altitud"):
+                    chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
+                    chat_content += (
+                        f'<div class="chat-message bot">🏔️ Consejos para Altitud:</div>'
+                    )
+                    for consejo in plan_data.get("consejos_altitud", []):
+                        chat_content += f'<div class="chat-message">  • {consejo}</div>'
+            else:
+                chat_content = f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - AG-PLAN</div>'
+                chat_content = f'<div class="chat-message bot">ℹ️ No hay recomendaciones específicas para tu estado actual</div>'
+
+            st.markdown(
+                f"""
+            <div class="plan-section">
+                <h4 style="color: var(--text-primary); margin-bottom: 1rem;">💬 Chat del Plan</h4>
+                <div class="chat-container">
+                    {chat_content}
+                </div>
+            </div>
+            """,
+                unsafe_allow_html=True,
+            )
+
+            # Botón para ir al chat de AG-PLAN
+            st.markdown(
+                """
+            <div style="text-align: center; margin-top: 2rem;">
+            """,
+                unsafe_allow_html=True,
+            )
+
+            if st.button(
+                "💬 Ir al Chat con AG-PLAN",
+                type="primary",
+                use_container_width=True,
+                key="go_to_plan_chat",
+                help="Abre el chat interactivo con el asistente AG-PLAN",
+            ):
+                st.switch_page("pages/4_plan.py")
+
+            st.markdown(
+                """
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                    💡 Conversa con el asistente AG-PLAN para obtener recomendaciones personalizadas
+                </p>
+            </div>
+            """,
+                unsafe_allow_html=True,
+            )
 
 
 if __name__ == "__main__":

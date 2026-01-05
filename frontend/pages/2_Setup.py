@@ -353,14 +353,20 @@ with st.form("setup_form"):
             else 0,
             help="Ciudad donde vives o estudias",
         )
+
+        nivel_guardado = (
+            existing_profile.get("nivel_actividad", "medio")
+            if existing_profile
+            else "medio"
+        )
+
+        nivel_map = {"bajo": 0, "medio": 1, "alto": 2}
+        index_valor = nivel_map.get(nivel_guardado, 1) if existing_profile else 1
+
         nivel = st.selectbox(
             "Nivel de actividad",
             ["bajo", "medio", "alto"],
-            index=["bajo", "medio", "alto"].index(
-                existing_profile.get("nivel_actividad", "medio")
-            )
-            if existing_profile
-            else 1,
+            index=index_valor,
             help="Tu nivel de actividad física habitual",
         )
 
