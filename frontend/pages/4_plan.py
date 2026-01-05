@@ -303,8 +303,14 @@ def main():
         sort=[("timestamp", -1)],
     )
 
+    ifa = 50
+    nivel_fatiga = "Medio"
+    ifa_color = "var(--warning-color)"
+    emoji = "🟡"
+    estado = "Moderado"
+
     if estado_fatiga_reciente:
-        ifa = estado_fatiga_reciente.get("ifa", 0)
+        ifa = estado_fatiga_reciente.get("ifa", 50)
         nivel_fatiga = estado_fatiga_reciente.get("nivel_fatiga", "Medio")
 
         if ifa < 34:
@@ -330,7 +336,7 @@ def main():
             <div class="ifa-score" style="color: {ifa_color};">{ifa}/100</div>
             <div class="ifa-status">{emoji} {estado}</div>
             <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
-                👤 {user_data.get("username")} • 🏙️ {profile.get("ciudad", "N/A")} ({profile.get("altitud", 0)}m)
+                👤 {user_data.get("username", "Usuario")} • 🏙️ {profile.get("ciudad", "N/A")} ({profile.get("altitud", 0)}m)
             </div>
         </div>
         """,
@@ -412,11 +418,14 @@ Puedo ayudarte con:
     if (send_button and user_message.strip()) or (
         user_message.strip() and st.session_state.get("submit_on_enter", False)
     ):
-        # Agregar mensaje del usuario
+        # Guardar el mensaje para procesar
+        mensaje_procesar = user_message.strip()
+
+        # Agregar mensaje del usuario al chat
         st.session_state.chat_messages.append(
             {
                 "role": "user",
-                "content": user_message.strip(),
+                "content": mensaje_procesar,
                 "timestamp": datetime.now(),
             }
         )
@@ -449,19 +458,23 @@ Puedo ayudarte con:
 
                 # Ejecutar AG-PLAN con el mensaje del usuario
                 resultado = run_ag_plan(
-                    user_id, contexto_fatiga, historial_dia, user_message.strip()
+                    user_id, contexto_fatiga, historial_dia, mensaje_procesar
                 )
 
                 # Extraer respuesta del plan
                 plan_data = resultado.get("plan", {}) if resultado else {}
 
-                # Construir respuesta del bot
-                bot_response = f"""🤔 Analizando tu consulta: "{user_message}"
+                # Construir respuesta del bot más directa usando el plan
+                if plan_data and (
+                    plan_data.get("recomendaciones_inmediatas")
+                    or plan_data.get("horarios_optimos")
+                    or plan_data.get("pausas_activas")
+                ):
+                    # Hay un plan específico, mostrarlo directamente
+                    bot_response = f"""✅ **Plan personalizado generado para tu consulta:** "{mensaje_procesar}"
 
 """
 
-                if plan_data:
-                    # Respuesta personalizada basada en el plan
                     if "recomendaciones_inmediatas" in plan_data:
                         bot_response += "🚀 **Recomendaciones Inmediatas:**\n"
                         for rec in plan_data["recomendaciones_inmediatas"][:3]:
@@ -486,15 +499,32 @@ Puedo ayudarte con:
                         bot_response += "🏔️ **Consejos para Altitud:**\n"
                         for consejo in plan_data["consejos_altitud"][:2]:
                             bot_response += f"• {consejo}\n"
+
+                    bot_response += """
+💡 **Puedes preguntarme:**
+• "¿Qué ejercicio específico me recomiendas?"
+• "¿A qué hora debo estudiar hoy?"
+• "¿Cuándo debo tomar mi próxima pausa?"
+• "¿Cómo puedo mejorar mi nivel de energía?"
+"""
+
                 else:
-                    bot_response += """Basado en tu IFA actual ({ifa}/100), te recomiendo:
+                    # No hay plan específico o respuesta vacía
+                    bot_response = f"""🤔 **Basado en tu estado actual (IFA: {ifa}/100 - {nivel_fatiga}):**
 
-• 💤 Descanso adecuado y monitoreo constante
-• 💧 Mantenerte bien hidratado
-• 🚶 Realizar pausas activas cada 2 horas
-• 📈 Continuar con el monitoreo diario
+💡 **Recomendaciones generales:**
+• 💤 Asegúrate de dormir las horas recomendadas
+• 💧 Mantente hidratado durante todo el día
+• 🚶 Realiza pausas activas cada 2 horas
+• 📈 Continúa con el monitoreo diario
 
-¿Hay algo específico sobre tu plan de recuperación que te gustaría conocer?"""
+🎯 **Para obtener un plan más específico, pregúntame:**
+• "¿Qué actividades físicas me recomiendas?"
+• "¿Cuál es el mejor horario para estudiar hoy?"
+• "¿Cómo puedo mejorar mi productividad?"
+• "¿Qué ejercicios de relajación me sugieres?"
+
+¿Sobre qué aspecto te gustaría obtener recomendaciones específicas?"""
 
                 # Agregar respuesta del bot
                 st.session_state.chat_messages.append(
@@ -514,8 +544,7 @@ Puedo ayudarte con:
                     }
                 )
 
-        # Limpiar input y rerun
-        st.session_state.user_input = ""
+        # Forzar rerun para limpiar el input (sin modificar session_state.user_input)
         st.rerun()
 
 

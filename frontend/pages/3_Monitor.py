@@ -575,10 +575,6 @@ def main():
         unsafe_allow_html=True,
     )
 
-    # Botón funcional de Perfil
-    if st.button("👤 Perfil", key="perfil_btn", help="Ir a configuración de perfil"):
-        st.switch_page("pages/2_Setup.py")
-
     # Información del usuario
     st.markdown(
         f"""
@@ -635,6 +631,12 @@ def main():
     # Session state para control de alertas
     if "alertas_visibles" not in st.session_state:
         st.session_state.alertas_visibles = True
+
+    # Session state para contexto de productividad
+    if "actividad_mental_guardada" not in st.session_state:
+        st.session_state.actividad_mental_guardada = None
+    if "estado_emocional_guardado" not in st.session_state:
+        st.session_state.estado_emocional_guardado = None
 
     datos = st.session_state.datos_dia
 
@@ -768,6 +770,63 @@ def main():
         unsafe_allow_html=True,
     )
 
+    # Sección de actividad mental/estudio
+    st.markdown("### 🧠 Actividad Mental y Estudio")
+
+    st.markdown(
+        """
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="font-size: 2rem;">🧠</div>
+            <div>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
+                    Información de Productividad
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Ayuda a AG-FATIGA a analizar tu capacidad productiva actual
+                </div>
+            </div>
+        </div>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    col_mental1, col_mental2 = st.columns(2)
+
+    with col_mental1:
+        actividad_mental = st.selectbox(
+            "📚 Actividad mental actual",
+            options=[
+                "Estudiando intensamente",
+                "Trabajando en proyectos",
+                "Tareas administrativas",
+                "Aprendiendo nuevo contenido",
+                "Revisando material",
+                "Descansando mentalmente",
+                "Sin actividad mental importante",
+            ],
+            index=6,
+            key="actividad_mental_select",
+            help="¿Qué tipo de actividad mental estás realizando?",
+        )
+
+    with col_mental2:
+        estado_emocional = st.selectbox(
+            "😊 Estado emocional",
+            options=[
+                "Muy motivado y enfocado",
+                "Bien y concentrado",
+                "Normal y estable",
+                "Un poco cansado",
+                "Estresado o ansioso",
+                "Desmotivado",
+            ],
+            index=2,
+            key="estado_emocional_select",
+            help="¿Cómo te sientes emocionalmente?",
+        )
+
     # Guardado automático de datos al cambiar
     col_a, col_b = st.columns(2)
 
@@ -818,6 +877,8 @@ def main():
         or nueva_sueno != datos["sueno"]
         or nueva_actividad != datos["actividad"]
         or int(nueva_energia_actual.split(" - ")[0]) != datos["energia"]
+        or st.session_state.get("actividad_mental_guardada") != actividad_mental
+        or st.session_state.get("estado_emocional_guardado") != estado_emocional
     ):
         energia_valor = int(nueva_energia_actual.split(" - ")[0])
 
@@ -829,7 +890,11 @@ def main():
             "energia": energia_valor,
         }
 
-        # Guardar en MongoDB usando AG-FISIO
+        # Guardar contexto de productividad
+        st.session_state.actividad_mental_guardada = actividad_mental
+        st.session_state.estado_emocional_guardado = estado_emocional
+
+        # Guardar en MongoDB usando AG-FISIO extendido
         with st.spinner("💾 Guardando en MongoDB..."):
             try:
                 run_ag_fisio(
@@ -839,6 +904,8 @@ def main():
                         "horas_sueno": nueva_sueno,
                         "actividad_minutos": nueva_actividad,
                         "nivel_energia": energia_valor,
+                        "actividad_mental": actividad_mental,
+                        "estado_emocional": estado_emocional,
                     },
                 )
                 st.success("✅ Datos guardados en MongoDB automáticamente")
@@ -869,10 +936,12 @@ def main():
                 },
             )
 
-            # Analizar fatiga
-            resultado_fatiga = run_ag_fatiga(user_id, estado_fisio)
+            # Analizar fatiga con contexto de productividad
+            resultado_fatiga = run_ag_fatiga(
+                user_id, estado_fisio, actividad_mental, estado_emocional
+            )
 
-            # Generar plan
+            # Generar plan con CrewAI colaborativo
             historial_dia = list(
                 daily_states.find(
                     {
@@ -896,6 +965,10 @@ def main():
             st.session_state.analisis_resultados = {
                 "fatiga": resultado_fatiga,
                 "plan": resultado_plan,
+                "contexto_productividad": {
+                    "actividad_mental": actividad_mental,
+                    "estado_emocional": estado_emocional,
+                },
             }
 
         st.success("✅ ¡Análisis completado!")

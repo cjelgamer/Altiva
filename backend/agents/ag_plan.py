@@ -9,7 +9,10 @@ import re
 
 
 def run_ag_plan(
-    user_id: str, analisis_fatiga: dict, historial_dia: list | None = None
+    user_id: str,
+    analisis_fatiga: dict,
+    historial_dia: list | None = None,
+    consulta_usuario: str | None = None,
 ) -> dict:
     """
     AG-PLAN: Agente con LLM que genera planes dinámicos de recuperación y productividad
@@ -90,6 +93,8 @@ HISTORIAL DEL DÍA:
 - Registros previos: {len(historial_dia)} estados guardados
 - Evolución: {"Mejorando" if len(historial_dia) > 3 else "Estable" if len(historial_dia) > 1 else "Insuficiente datos"}
 
+{f'CONSULTA DEL USUARIO: "{consulta_usuario}"' if consulta_usuario else ""}
+
 INSTRUCCIONES:
 Genera tu respuesta EXACTAMENTE en el siguiente formato JSON (sin markdown, solo JSON puro):
 
@@ -124,6 +129,7 @@ DIRECTRICES ESPECÍFICAS:
 - Las recomendaciones deben ser específicas, medibles y accionables
 - Los horarios deben considerar el nivel de energía actual
 - Incluir siempre consejos específicos para la altitud del usuario
+- {f'RESPONDER DIRECTAMENTE a la consulta: "{consulta_usuario}"' if consulta_usuario else "Proporcionar un plan general de recuperación y productividad"}
 """
 
     # 7. Llamar al LLM

@@ -87,12 +87,18 @@ HISTORIAL Y TENDENCIAS:
 - Análisis de últimos días: {len(historial_reciente)} registros disponibles
 - Última actualización: {ultima_actualizacion.strftime("%Y-%m-%d %H:%M") if historial_reciente else "Primera vez"}
 
+CONTEXTO DE PRODUCTIVIDAD:
+- Actividad mental actual: {actividad_mental if actividad_mental else "No especificada"}
+- Estado emocional: {estado_emocional if estado_emocional else "No especificado"}
+- Nivel de energía subjetivo: {indicadores.get("nivel_energia", 3)}/5
+- Horas de sueño: {indicadores.get("horas_sueno", 0)}h (impacta directamente la productividad)
+
 ALERTAS ACTIVAS:
 {chr(10).join(f"- {alerta}" for alerta in alertas) if alertas else "- Sin alertas"}
 
 INFORMACIÓN ADICIONAL:
-- Actividad mental: {actividad_mental if actividad_mental else "No especificada"}
-- Estado emocional: {estado_emocional if estado_emocional else "No especificado"}
+- Altitud: {altitud}m (afecta capacidad cognitiva y productiva)
+- Hidratación actual: {indicadores.get("hidratacion_porcentaje", 0):.1f}% del objetivo
 
 INSTRUCCIONES:
 Analiza estos datos y proporciona tu respuesta EXACTAMENTE en el siguiente formato JSON (sin markdown, solo JSON puro):
@@ -110,6 +116,14 @@ Analiza estos datos y proporciona tu respuesta EXACTAMENTE en el siguiente forma
       "accion_sugerida": "<acción específica que debe tomar>"
     }}
   ],
+  "productividad": {{
+    "capacidad_actual": <porcentaje 0-100>,
+    "horas_optimas_estudio": <número de horas recomendadas>,
+    "mejor_horario_inicio": "<hora recomendada para empezar>",
+    "intervalos_concentracion": <minutos de concentración óptima>,
+    "tiempo_descanso_estudio": <minutos de descanso entre sesiones>,
+    "productividad_relativa": "<Baja/Media/Alta según IFA>"
+  }},
   "contadores": {{
     "hidratacion": {{
       "consumido_ml": {indicadores.get("agua_consumida_ml", 0)},
@@ -133,10 +147,16 @@ Analiza estos datos y proporciona tu respuesta EXACTAMENTE en el siguiente forma
 }}
 
 CRITERIOS:
-- IFA 0-33: Fatiga Baja
-- IFA 34-66: Fatiga Media
-- IFA 67-100: Fatiga Alta
+- IFA 0-33: Fatiga Baja (productividad alta)
+- IFA 34-66: Fatiga Media (productividad moderada)
+- IFA 67-100: Fatiga Alta (productividad baja)
 - Considera que en altura (>3500m) los efectos de deshidratación y falta de sueño se amplifican
+- Evalúa CAPACIDAD PRODUCTIVA basada en:
+  * Nivel de energía actual (1-5)
+  * Horas y calidad del sueño
+  * Estado de hidratación
+  * Tendencia de fatiga
+- Productividad óptima = energía 4-5, sueño >80%, hidratación >80%, IFA <40
 - Genera alertas específicas basadas en los déficits actuales y tendencias
 - Para hidratación: recomienda tomas cada 1-2 horas en altura
 - Para descanso: recomienda pausas cada 2 horas de trabajo
@@ -145,6 +165,7 @@ CRITERIOS:
 - CONSIDERA LA TENDENCIA: Si está empeorando, genera alertas más urgentes
 - Si la tendencia es estable o mejorando, ajusta la prioridad de las alertas
 - GENERA AL MENOS 2 ALERTAS ESPECÍFICAS basadas en los datos actuales
+- INCLUYE ANÁLISIS DE HORARIOS ÓPTIMOS para estudio/trabajo según el estado actual
 """
 
     # 3. Llamar al LLM
@@ -174,6 +195,9 @@ CRITERIOS:
             nivel_fatiga = "Medio"
         if not (0 <= ifa <= 100):
             ifa = max(0, min(100, ifa))
+
+        # Extraer productividad si existe
+        productividad = analisis.get("productividad", {})
 
         # Validar y completar contadores si vienen vacíos
         if not contadores:
@@ -205,6 +229,54 @@ CRITERIOS:
                 },
             }
 
+        # Validar y completar productividad si viene vacía
+        if not productividad:
+            # Calcular capacidad productiva basada en factores
+            energia = indicadores.get("nivel_energia", 3)
+            sueño_pct = indicadores.get("sueno_porcentaje", 100)
+            hidratacion_pct = indicadores.get("hidratacion_porcentaje", 100)
+
+            # Fórmula de productividad considerando altitud
+            factor_altitud = 0.85 if altitud > 3500 else 0.95  # Reducción por altitud
+            productividad_capacidad = (
+                (
+                    (energia / 5) * 0.4  # 40% peso a energía
+                    + (sueño_pct / 100) * 0.3  # 30% peso a sueño
+                    + (hidratacion_pct / 100) * 0.3  # 30% peso a hidratación
+                )
+                * factor_altitud
+                * 100
+            )
+
+            # Determinar horas óptimas de estudio
+            if productividad_capacidad > 80:
+                horas_estudio = 6
+                mejor_horario = "09:00 - 12:00 y 14:00 - 17:00"
+                intervalo = 50
+                descanso = 10
+                productividad_rel = "Alta"
+            elif productividad_capacidad > 60:
+                horas_estudio = 4
+                mejor_horario = "10:00 - 12:00 y 15:00 - 17:00"
+                intervalo = 35
+                descanso = 15
+                productividad_rel = "Media"
+            else:
+                horas_estudio = 2
+                mejor_horario = "10:00 - 12:00"
+                intervalo = 25
+                descanso = 20
+                productividad_rel = "Baja"
+
+            productividad = {
+                "capacidad_actual": round(productividad_capacidad, 1),
+                "horas_optimas_estudio": horas_estudio,
+                "mejor_horario_inicio": mejor_horario,
+                "intervalos_concentracion": intervalo,
+                "tiempo_descanso_estudio": descanso,
+                "productividad_relativa": productividad_rel,
+            }
+
         # Validar alertas si vienen vacías
         if not alertas:
             alertas = []
@@ -231,11 +303,12 @@ CRITERIOS:
         ifa = 50
         justificacion = f"Error en el análisis automático. Estado fisiológico: {estado}"
 
-        # Generar alertas y contadores básicos en fallback
+        # Generar alertas, contadores y productividad básicos en fallback
         agua_consumida = indicadores.get("agua_consumida_ml", 0)
         agua_base = indicadores.get("agua_base_ml", 2000)
         actividad_realizada = indicadores.get("actividad_minutos", 0)
         actividad_minima = indicadores.get("actividad_minima", 30)
+        energia = indicadores.get("nivel_energia", 3)
 
         alertas = []
         if agua_consumida < agua_base * 0.8:
@@ -250,6 +323,57 @@ CRITERIOS:
                     "accion_sugerida": f"Bebe {min(250, agua_base - agua_consumida)}ml de agua",
                 }
             )
+
+        # Productividad fallback
+        productividad_capacidad = (energia / 5) * 70  # Estimación conservadora
+        horas_estudio = 4 if productividad_capacidad > 50 else 2
+
+        productividad = {
+            "capacidad_actual": productividad_capacidad,
+            "horas_optimas_estudio": horas_estudio,
+            "mejor_horario_inicio": "10:00 - 12:00 y 15:00 - 17:00",
+            "intervalos_concentracion": 30,
+            "tiempo_descanso_estudio": 15,
+            "productividad_relativa": "Media"
+            if productividad_capacidad > 50
+            else "Baja",
+        }
+
+        # Generar alertas, contadores y productividad básicos en fallback
+        agua_consumida = indicadores.get("agua_consumida_ml", 0)
+        agua_base = indicadores.get("agua_base_ml", 2000)
+        actividad_realizada = indicadores.get("actividad_minutos", 0)
+        actividad_minima = indicadores.get("actividad_minima", 30)
+        energia = indicadores.get("nivel_energia", 3)
+
+        alertas = []
+        if agua_consumida < agua_base * 0.8:
+            alertas.append(
+                {
+                    "tipo": "hidratacion",
+                    "prioridad": "alta"
+                    if agua_consumida < agua_base * 0.5
+                    else "media",
+                    "mensaje": "Necesitas beber más agua para mantenerte hidratado en altura",
+                    "tiempo_recomendado": "Ahora mismo",
+                    "accion_sugerida": f"Bebe {min(250, agua_base - agua_consumida)}ml de agua",
+                }
+            )
+
+        # Productividad fallback
+        productividad_capacidad = (energia / 5) * 70  # Estimación conservadora
+        horas_estudio = 4 if productividad_capacidad > 50 else 2
+
+        productividad = {
+            "capacidad_actual": productividad_capacidad,
+            "horas_optimas_estudio": horas_estudio,
+            "mejor_horario_inicio": "10:00 - 12:00 y 15:00 - 17:00",
+            "intervalos_concentracion": 30,
+            "tiempo_descanso_estudio": 15,
+            "productividad_relativa": "Media"
+            if productividad_capacidad > 50
+            else "Baja",
+        }
 
         contadores = {
             "hidratacion": {
@@ -274,7 +398,78 @@ CRITERIOS:
             },
         }
 
-    # 5. Crear resultado del análisis con alertas y contadores
+        # Validar y completar productividad si viene vacía
+        if not productividad:
+            # Calcular capacidad productiva basada en factores
+            energia = indicadores.get("nivel_energia", 3)
+            sueño_pct = indicadores.get("sueno_porcentaje", 100)
+            hidratacion_pct = indicadores.get("hidratacion_porcentaje", 100)
+
+            # Fórmula de productividad considerando altitud
+            factor_altitud = 0.85 if altitud > 3500 else 0.95  # Reducción por altitud
+            productividad_capacidad = (
+                (
+                    (energia / 5) * 0.4  # 40% peso a energía
+                    + (sueño_pct / 100) * 0.3  # 30% peso a sueño
+                    + (hidratacion_pct / 100) * 0.3  # 30% peso a hidratación
+                )
+                * factor_altitud
+                * 100
+            )
+
+            # Determinar horas óptimas de estudio
+            if productividad_capacidad > 80:
+                horas_estudio = 6
+                mejor_horario = "09:00 - 12:00 y 14:00 - 17:00"
+                intervalo = 50
+                descanso = 10
+                productividad_rel = "Alta"
+            elif productividad_capacidad > 60:
+                horas_estudio = 4
+                mejor_horario = "10:00 - 12:00 y 15:00 - 17:00"
+                intervalo = 35
+                descanso = 15
+                productividad_rel = "Media"
+            else:
+                horas_estudio = 2
+                mejor_horario = "10:00 - 12:00"
+                intervalo = 25
+                descanso = 20
+                productividad_rel = "Baja"
+
+            productividad = {
+                "capacidad_actual": round(productividad_capacidad, 1),
+                "horas_optimas_estudio": horas_estudio,
+                "mejor_horario_inicio": mejor_horario,
+                "intervalos_concentracion": intervalo,
+                "tiempo_descanso_estudio": descanso,
+                "productividad_relativa": productividad_rel,
+            }
+
+        contadores = {
+            "hidratacion": {
+                "consumido_ml": agua_consumida,
+                "objetivo_ml": agua_base,
+                "faltante_ml": max(0, agua_base - agua_consumida),
+                "siguiente_toma_ml": 250,
+                "frecuencia_horas": 2,
+            },
+            "descanso": {
+                "ultimo_descanso_hace": "Desconocido",
+                "proxima_pausa_en": "Cada 2 horas",
+                "duracion_recomendada_min": 15,
+            },
+            "actividad": {
+                "realizado_min": actividad_realizada,
+                "objetivo_min": actividad_minima,
+                "faltante_min": max(0, actividad_minima - actividad_realizada),
+                "proxima_sesion_en": "Hoy"
+                if actividad_realizada < actividad_minima
+                else "Mañana",
+            },
+        }
+
+    # 5. Crear resultado del análisis con alertas, contadores y productividad
     resultado_fatiga = {
         "user_id": user_id,
         "timestamp": datetime.utcnow(),
@@ -282,7 +477,9 @@ CRITERIOS:
         "ifa": ifa,
         "justificacion": justificacion,
         "alertas": alertas,
+        "productividad": productividad,
         "contadores": contadores,
+        "tendencia_fatiga": tendencia_fatiga,
         "estado_fisio_referencia": {
             "estado": estado,
             "alertas_count": len(alertas),
