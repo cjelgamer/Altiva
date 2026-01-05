@@ -8,6 +8,7 @@ sys.path.append(str(ROOT_DIR))
 from backend.crew.crew import run_initial_crew
 from backend.services.database import has_user_profile, get_user_profile, user_profiles
 from backend.services.altitude_loader import get_all_cities
+from frontend.components.peru_clock import peru_clock_component
 
 # --- ESTILO OSCURO MODERNO CON AJUSTES ---
 st.markdown(
@@ -249,6 +250,9 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+# Añadir reloj de hora peruana
+peru_clock_component()
 
 # Verificar login
 if "user" not in st.session_state or st.session_state.user is None:

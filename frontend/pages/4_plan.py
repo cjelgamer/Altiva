@@ -9,6 +9,11 @@ sys.path.append(str(ROOT_DIR))
 
 from backend.agents.ag_plan import run_ag_plan
 from backend.services.database import get_user_profile, daily_states
+from frontend.components.peru_clock import (
+    peru_clock_component,
+    get_peru_midnight,
+    get_utc_equivalent,
+)
 
 # --- ESTILO OSCURO MODERNO ---
 st.markdown(
@@ -282,6 +287,9 @@ def main():
             unsafe_allow_html=True,
         )
 
+    # Añadir reloj de hora peruana
+    peru_clock_component()
+
     with col_right:
         if st.button(
             "👤 Perfil", key="perfil_btn", help="Ir a configuración de perfil"
@@ -291,14 +299,15 @@ def main():
     # Estado actual del usuario
     st.markdown("### 📊 Estado Actual")
 
-    # Obtener análisis reciente
-    hoy_inicio = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Obtener análisis reciente (usar hora peruana)
+    hoy_inicio_peru = get_peru_midnight()
+    hoy_inicio_utc = get_utc_equivalent(hoy_inicio_peru)
 
     estado_fatiga_reciente = daily_states.find_one(
         {
             "user_id": user_id,
             "agent": "AG-FATIGA",
-            "timestamp": {"$gte": hoy_inicio},
+            "timestamp": {"$gte": hoy_inicio_utc},
         },
         sort=[("timestamp", -1)],
     )

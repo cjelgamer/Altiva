@@ -15,6 +15,11 @@ from backend.services.database import (
     daily_states,
     update_user_profile,
 )
+from frontend.components.peru_clock import (
+    peru_clock_component,
+    get_peru_midnight,
+    get_utc_equivalent,
+)
 
 # --- ESTILO OSCURO MODERNO CON AJUSTES ---
 st.markdown(
@@ -605,17 +610,20 @@ def main():
         unsafe_allow_html=True,
     )
 
+    # Añadir reloj de hora peruana
+    peru_clock_component()
+
     # Cargar datos del día
     def cargar_datos_dia():
-        hoy_inicio = datetime.utcnow().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        # Usar medianoche en hora peruana (GMT-5)
+        hoy_inicio_peru = get_peru_midnight()
+        hoy_inicio_utc = get_utc_equivalent(hoy_inicio_peru)
 
         estado_reciente = daily_states.find_one(
             {
                 "user_id": user_id,
                 "agent": "AG-FISIO",
-                "timestamp": {"$gte": hoy_inicio},
+                "timestamp": {"$gte": hoy_inicio_utc},
             },
             sort=[("timestamp", -1)],
         )
@@ -648,31 +656,52 @@ def main():
     if "estado_emocional_guardado" not in st.session_state:
         st.session_state.estado_emocional_guardado = None
 
-    # Cargar actividad mental y emocional desde el último registro AG-FISIO
+    # Cargar actividad mental y emocional: PRIMERO desde perfil permanente, LUEGO desde registros del día
     if (
         st.session_state.actividad_mental_guardada is None
         or st.session_state.estado_emocional_guardado is None
     ):
-        hoy_inicio = datetime.utcnow().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        # 1. Intentar cargar desde el perfil permanente (user_profiles)
+        user_profile = get_user_profile(user_id)
 
-        ultimo_fisio = daily_states.find_one(
-            {
-                "user_id": user_id,
-                "agent": "AG-FISIO",
-                "timestamp": {"$gte": hoy_inicio},
-            },
-            sort=[("timestamp", -1)],
-        )
+        if user_profile:
+            actividad_desde_perfil = user_profile.get("actividad_mental_actual")
+            emocional_desde_perfil = user_profile.get("estado_emocional_actual")
 
-        if ultimo_fisio:
-            st.session_state.actividad_mental_guardada = ultimo_fisio.get(
-                "actividad_mental", "Sin actividad mental importante"
-            )
-            st.session_state.estado_emocional_guardado = ultimo_fisio.get(
-                "estado_emocional", "Normal y estable"
-            )
+            if actividad_desde_perfil and emocional_desde_perfil:
+                st.session_state.actividad_mental_guardada = actividad_desde_perfil
+                st.session_state.estado_emocional_guardado = emocional_desde_perfil
+                print(
+                    f"✅ Cargados desde perfil: {actividad_desde_perfil} | {emocional_desde_perfil}"
+                )
+            else:
+                # 2. Si no hay en perfil, buscar en registros del día (daily_states)
+                hoy_inicio_peru = get_peru_midnight()
+                hoy_inicio_utc = get_utc_equivalent(hoy_inicio_peru)
+
+                ultimo_fisio = daily_states.find_one(
+                    {
+                        "user_id": user_id,
+                        "agent": "AG-FISIO",
+                        "timestamp": {"$gte": hoy_inicio_utc},
+                    },
+                    sort=[("timestamp", -1)],
+                )
+
+                if ultimo_fisio:
+                    st.session_state.actividad_mental_guardada = ultimo_fisio.get(
+                        "actividad_mental", "Sin actividad mental importante"
+                    )
+                    st.session_state.estado_emocional_guardado = ultimo_fisio.get(
+                        "estado_emocional", "Normal y estable"
+                    )
+                    print(
+                        f"✅ Cargados desde daily_states: {st.session_state.actividad_mental_guardada} | {st.session_state.estado_emocional_guardado}"
+                    )
+                else:
+                    print("⚠️ No se encontraron valores, usando defaults")
+        else:
+            print("❌ No se encontró perfil de usuario")
 
     datos = st.session_state.datos_dia
 
@@ -836,7 +865,7 @@ def main():
             "actividad_mental_guardada", "Sin actividad mental importante"
         )
 
-        # Encontrar índice del valor guardado
+        # Encontrar índice del valor guardado (matching flexible)
         opciones_mentales = [
             "Estudiando intensamente",
             "Trabajando en proyectos",
@@ -847,11 +876,24 @@ def main():
             "Sin actividad mental importante",
         ]
 
-        index_mental = (
-            opciones_mentales.index(valor_guardado_mental)
-            if valor_guardado_mental in opciones_mentales
-            else 6
-        )
+        # Matching flexible por palabras clave
+        index_mental = 6  # Default
+        valor_lower = valor_guardado_mental.lower()
+
+        if "estudiando intensamente" in valor_lower:
+            index_mental = 0
+        elif "trabajando en proyectos" in valor_lower or "trabajando" in valor_lower:
+            index_mental = 1
+        elif "tareas administrativas" in valor_lower:
+            index_mental = 2
+        elif "aprendiendo" in valor_lower:
+            index_mental = 3
+        elif "revisando" in valor_lower:
+            index_mental = 4
+        elif "descansando" in valor_lower:
+            index_mental = 5
+        elif "sin actividad" in valor_lower:
+            index_mental = 6
 
         actividad_mental = st.selectbox(
             "📚 Actividad mental actual",
@@ -877,11 +919,25 @@ def main():
             "Desmotivado",
         ]
 
-        index_emocional = (
-            opciones_emocionales.index(valor_guardado_emocional)
-            if valor_guardado_emocional in opciones_emocionales
-            else 2
-        )
+        # Matching flexible para estado emocional
+        index_emocional = 2  # Default
+        emocional_lower = valor_guardado_emocional.lower()
+
+        if (
+            "muy motivado" in emocional_lower
+            or "motivado y enfocado" in emocional_lower
+        ):
+            index_emocional = 0
+        elif "bien y concentrado" in emocional_lower or "bien" in emocional_lower:
+            index_emocional = 1
+        elif "normal y estable" in emocional_lower or "normal" in emocional_lower:
+            index_emocional = 2
+        elif "cansado" in emocional_lower:
+            index_emocional = 3
+        elif "estresado" in emocional_lower or "ansioso" in emocional_lower:
+            index_emocional = 4
+        elif "desmotivado" in emocional_lower:
+            index_emocional = 5
 
         estado_emocional = st.selectbox(
             "😊 Estado emocional",
@@ -1052,16 +1108,15 @@ def main():
                 user_id, estado_fisio, actividad_mental, estado_emocional
             )
 
-            # Generar plan con CrewAI colaborativo
+            # Generar plan con CrewAI colaborativo (usar hora peruana)
+            hoy_inicio_peru = get_peru_midnight()
+            hoy_inicio_utc = get_utc_equivalent(hoy_inicio_peru)
+
             historial_dia = list(
                 daily_states.find(
                     {
                         "user_id": user_id,
-                        "timestamp": {
-                            "$gte": datetime.utcnow().replace(
-                                hour=0, minute=0, second=0, microsecond=0
-                            )
-                        },
+                        "timestamp": {"$gte": hoy_inicio_utc},
                     }
                 ).sort("timestamp", -1)
             )

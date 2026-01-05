@@ -4,6 +4,7 @@
 from backend.services.openai_service import analyze_with_llm
 from backend.services.database import daily_states
 from datetime import datetime
+from pytz import timezone
 import json
 import re
 
@@ -101,14 +102,23 @@ def run_ag_fatiga(
 
     # 1.1. Obtener datos históricos del usuario para análisis temporal
     from datetime import datetime, timedelta
+    from pytz import timezone
 
-    hoy_inicio = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Usar hora peruana para el inicio del día
+    peru_tz = timezone("America/Lima")
+    hoy_inicio_peru = datetime.now(peru_tz).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    hoy_inicio_utc = hoy_inicio_peru.astimezone(timezone("UTC"))
+
     historial_reciente = list(
         daily_states.find(
             {
                 "user_id": user_id,
                 "agent": "AG-FATIGA",
-                "timestamp": {"$gte": hoy_inicio - timedelta(days=7)},  # Últimos 7 días
+                "timestamp": {
+                    "$gte": hoy_inicio_utc - timedelta(days=7)
+                },  # Últimos7 días
             }
         )
         .sort("timestamp", -1)
@@ -125,10 +135,18 @@ def run_ag_fatiga(
             elif ifa_recientes[0] < ifa_recientes[-1] - 10:
                 tendencia_fatiga = "Mejorando"
 
-    # 1.3. Calcular frecuencia de actualización de datos
-    ultima_actualizacion = datetime.utcnow()
+    # 1.3. Calcular frecuencia de actualización de datos (usar hora peruana)
+    peru_tz = timezone("America/Lima")
+    ultima_actualizacion = datetime.now(peru_tz)
     if historial_reciente:
-        ultima_actualizacion = historial_reciente[0].get("timestamp", datetime.utcnow())
+        timestamp_historial = historial_reciente[0].get(
+            "timestamp", datetime.now(peru_tz)
+        )
+        # Convertir a hora peruana si está en UTC
+        if hasattr(timestamp_historial, "astimezone"):
+            ultima_actualizacion = timestamp_historial.astimezone(peru_tz)
+        else:
+            ultima_actualizacion = timestamp_historial
 
     # 2. Construir prompt estructurado para el LLM con alertas y temporizadores
     prompt = f"""Analiza el siguiente estado fisiológico de un usuario en altura y determina su nivel de fatiga, además de generar alertas y recomendaciones con tiempos específicos.
@@ -630,7 +648,7 @@ FÓRMULAS DE CÁLCULO:
     # 5. Crear resultado del análisis con alertas, contadores y productividad
     resultado_fatiga = {
         "user_id": user_id,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone("America/Lima")),
         "nivel_fatiga": nivel_fatiga,
         "ifa": ifa,
         "justificacion": justificacion,
