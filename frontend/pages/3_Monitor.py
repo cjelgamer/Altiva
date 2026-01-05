@@ -255,6 +255,234 @@ st.markdown(
         display: none !important;
     }
     
+    /* Área de alertas en esquina superior derecha */
+    .alertas-container {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+        background: var(--bg-card);
+        border: 2px solid var(--border-color);
+        border-radius: 1rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        animation: slideInRight 0.3s ease-out;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .alertas-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 700;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .alertas-content {
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+    
+    .alerta-item {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .alerta-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .alerta-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+    
+    .alerta-item.alta::before {
+        background: var(--error-color);
+        animation: pulseAlert 2s infinite;
+    }
+    
+    @keyframes pulseAlert {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+    
+    .alerta-item.media::before {
+        background: var(--warning-color);
+    }
+    
+    .alerta-item.baja::before {
+        background: var(--success-color);
+    }
+    
+    .alerta-tipo {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .alerta-mensaje {
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .alerta-accion {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-light);
+        border-radius: 0.5rem;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .alerta-tiempo {
+        color: var(--accent-color);
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    
+    .contador-section {
+        background: var(--bg-secondary);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    
+    .contador-titulo {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .contador-progress {
+        background: var(--bg-tertiary);
+        height: 6px;
+        border-radius: 3px;
+        overflow: hidden;
+        margin: 0.25rem 0;
+    }
+    
+    .contador-progress-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+    
+    .contador-text {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.25rem;
+    }
+    
+    /* Botón cerrar alertas */
+    .alertas-cerrar {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        border-radius: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+        cursor: pointer;
+        margin-left: auto;
+    }
+    
+    .alertas-cerrar:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Ocultar alertas temporalmente */
+    .alertas-container.hidden {
+        display: none;
+    }
+    
+    /* Botón flotante para mostrar/ocultar alertas */
+    .alertas-toggle {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        transition: all 0.2s ease;
+        z-index: 9998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .alertas-toggle:hover {
+        background: var(--primary-dark);
+        transform: scale(1.1);
+    }
+    
+    .alertas-toggle.con-alertas {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+    }
+    
     /* Mobile responsive */
     @media (max-width: 768px) {
         .block-container {
@@ -269,6 +497,22 @@ st.markdown(
         
         .chat-container {
             height: 300px;
+        }
+        
+        .alertas-container {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            left: 10px;
+            max-width: none;
+        }
+        
+        .alertas-toggle {
+            top: 70px;
+            right: 10px;
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
         }
     }
 </style>
@@ -387,6 +631,10 @@ def main():
     # Session state para resultados del análisis
     if "analisis_resultados" not in st.session_state:
         st.session_state.analisis_resultados = None
+
+    # Session state para control de alertas
+    if "alertas_visibles" not in st.session_state:
+        st.session_state.alertas_visibles = True
 
     datos = st.session_state.datos_dia
 
@@ -651,21 +899,24 @@ def main():
             }
 
         st.success("✅ ¡Análisis completado!")
+
+        # Mostrar alertas si hay
+        alertas_activas = resultado_fatiga.get("alertas", [])
+        if alertas_activas:
+            st.session_state.alertas_visibles = True
+
         st.rerun()
 
-    # Sección 2: Resultados del Análisis (dos columnas)
+    # Sección 2: Resultados del Análisis (solo AG-FATIGA)
     if st.session_state.analisis_resultados:
         st.markdown("---")
         st.markdown("### 🎯 Resultados del Análisis")
 
         resultados = st.session_state.analisis_resultados
         resultado_fatiga = resultados["fatiga"]
-        resultado_plan = resultados["plan"]
 
-        # Dividir en dos columnas
-        left_col, right_col = st.columns(2)
-
-        with left_col:
+        # Mostrar solo análisis de fatiga en columna completa
+        with st.container():
             # Sección izquierda: Análisis de Fatiga
             st.markdown(
                 """
@@ -719,95 +970,195 @@ def main():
                 unsafe_allow_html=True,
             )
 
-        with right_col:
-            # Sección derecha: AG-PLAN con Chat
+    # Mostrar alertas flotantes si hay análisis
+    if st.session_state.analisis_resultados:
+        resultado_fatiga = st.session_state.analisis_resultados.get("fatiga", {})
+        alertas = resultado_fatiga.get("alertas", [])
+        contadores = resultado_fatiga.get("contadores", {})
+
+        if alertas and st.session_state.alertas_visibles:
             st.markdown(
-                """
-            <div class="plan-section">
-                <h3 style="color: var(--text-primary); margin-bottom: 1.5rem;">
-                    🤖 AG-PLAN: Plan de Recuperación
-                </h3>
-            </div>
+                f"""
+            <div class="alertas-container" id="alertasContainer">
+                <div class="alertas-header">
+                    <span>🔔 Alertas de Bienestar</span>
+                    <button class="alertas-cerrar" onclick="document.getElementById('alertasContainer').style.display='none'">✕</button>
+                </div>
+                <div class="alertas-content">
             """,
                 unsafe_allow_html=True,
             )
 
-            # Chat del plan
-            plan_data = resultado_plan.get("plan", {}) if resultado_plan else {}
+            # Mostrar resumen de alertas primero
+            alertas_urgentes = [a for a in alertas if a.get("prioridad") == "alta"]
+            alertas_medias = [a for a in alertas if a.get("prioridad") == "media"]
+            alertas_bajas = [a for a in alertas if a.get("prioridad") == "baja"]
 
-            chat_content = ""
-            if plan_data:
-                chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
-                chat_content += f'<div class="chat-message bot">🏔️ Plan generado según tu IFA: {ifa}/100 ({estado})</div>'
+            # Resumen rápido al principio
+            if alertas_urgentes:
+                st.markdown(
+                    f"""
+                <div style="background: var(--error-color); color: white; padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1rem; text-align: center; font-weight: 600;">
+                    ⚠️ {len(alertas_urgentes)} alerta(s) urgente(s) requiere(n) atención inmediata
+                </div>
+                """,
+                    unsafe_allow_html=True,
+                )
 
-                if plan_data.get("recomendaciones_inmediatas"):
-                    chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
-                    chat_content += f'<div class="chat-message bot">🚀 Recomendaciones Inmediatas:</div>'
-                    for rec in plan_data.get("recomendaciones_inmediatas", []):
-                        chat_content += f'<div class="chat-message">  • {rec}</div>'
+            # Mostrar cada alerta con información clara al inicio
+            for i, alerta in enumerate(alertas):
+                tipo_emoji = {
+                    "hidratacion": "💧",
+                    "descanso": "😴",
+                    "actividad": "🏃",
+                    "energia": "⚡",
+                }.get(alerta.get("tipo", "info"), "ℹ️")
 
-                if plan_data.get("horarios_optimos"):
-                    chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
-                    chat_content += (
-                        f'<div class="chat-message bot">⏰ Horarios Óptimos:</div>'
+                # Extraer información clave del mensaje para mostrarla destacada
+                mensaje_principal = (
+                    alerta.get("mensaje", "Sin mensaje").split(".")[0] + "."
+                )
+
+                st.markdown(
+                    f"""
+                <div class="alerta-item {alerta.get("prioridad", "media")}" onclick="this.style.transform='scale(0.98)'; setTimeout(() => this.style.transform='scale(1)', 100)">
+                    <div class="alerta-tipo">
+                        {tipo_emoji} <span style="text-transform: uppercase; font-size: 0.8rem;">{alerta.get("tipo", "INFO")}</span>
+                        <span style="margin-left: auto; padding: 0.2rem 0.5rem; background: {"var(--error-color)" if alerta.get("prioridad") == "alta" else "var(--warning-color)" if alerta.get("prioridad") == "media" else "var(--success-color)"}; color: white; border-radius: 0.25rem; font-size: 0.7rem;">
+                            {alerta.get("prioridad", "media").upper()}
+                        </span>
+                    </div>
+                    <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem; margin-bottom: 0.5rem; line-height: 1.3;">
+                        {mensaje_principal}
+                    </div>
+                    <div class="alerta-accion">
+                        💡 <strong>Acción:</strong> {alerta.get("accion_sugerida", "Sin acción sugerida")}
+                    </div>
+                    <div class="alerta-tiempo">
+                        ⏰ <strong>Cuándo:</strong> {alerta.get("tiempo_recomendado", "Ahora")}
+                    </div>
+                </div>
+                """,
+                    unsafe_allow_html=True,
+                )
+
+            # Mostrar contadores
+            if contadores:
+                # Contador de hidratación
+                hidratacion = contadores.get("hidratacion", {})
+                if hidratacion:
+                    pct_hidratacion = (
+                        hidratacion.get("consumido_ml", 0)
+                        / hidratacion.get("objetivo_ml", 1)
+                    ) * 100
+                    color_h = (
+                        "var(--success-color)"
+                        if pct_hidratacion >= 80
+                        else "var(--warning-color)"
+                        if pct_hidratacion >= 50
+                        else "var(--error-color)"
                     )
-                    for tipo, horario in plan_data.get("horarios_optimos", {}).items():
-                        chat_content += f'<div class="chat-message">  • **{tipo.title()}:** {horario}</div>'
 
-                if plan_data.get("pausas_activas"):
-                    chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
-                    chat_content += (
-                        f'<div class="chat-message bot">🤸 Pausas Activas:</div>'
+                    st.markdown(
+                        f"""
+                    <div class="contador-section">
+                        <div class="contador-titulo">💧 Hidratación</div>
+                        <div class="contador-progress">
+                            <div class="contador-progress-fill" style="width: {pct_hidratacion}%; background: {color_h};"></div>
+                        </div>
+                        <div class="contador-text">
+                            <span>{hidratacion.get("consumido_ml", 0)}ml</span>
+                            <span>{hidratacion.get("objetivo_ml", 0)}ml objetivo</span>
+                        </div>
+                    </div>
+                    """,
+                        unsafe_allow_html=True,
                     )
-                    for pausa in plan_data.get("pausas_activas", []):
-                        chat_content += f'<div class="chat-message">  • {pausa}</div>'
 
-                if plan_data.get("consejos_altitud"):
-                    chat_content += f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - Plan</div>'
-                    chat_content += (
-                        f'<div class="chat-message bot">🏔️ Consejos para Altitud:</div>'
+                # Contador de actividad
+                actividad = contadores.get("actividad", {})
+                if actividad:
+                    pct_actividad = (
+                        actividad.get("realizado_min", 0)
+                        / actividad.get("objetivo_min", 1)
+                    ) * 100
+                    color_a = (
+                        "var(--success-color)"
+                        if pct_actividad >= 100
+                        else "var(--warning-color)"
+                        if pct_actividad >= 50
+                        else "var(--error-color)"
                     )
-                    for consejo in plan_data.get("consejos_altitud", []):
-                        chat_content += f'<div class="chat-message">  • {consejo}</div>'
-            else:
-                chat_content = f'<div class="chat-time">{datetime.now().strftime("%H:%M:%S")} - AG-PLAN</div>'
-                chat_content = f'<div class="chat-message bot">ℹ️ No hay recomendaciones específicas para tu estado actual</div>'
+
+                    st.markdown(
+                        f"""
+                    <div class="contador-section">
+                        <div class="contador-titulo">🏃 Actividad</div>
+                        <div class="contador-progress">
+                            <div class="contador-progress-fill" style="width: {pct_actividad}%; background: {color_a};"></div>
+                        </div>
+                        <div class="contador-text">
+                            <span>{actividad.get("realizado_min", 0)}min</span>
+                            <span>{actividad.get("objetivo_min", 0)}min objetivo</span>
+                        </div>
+                    </div>
+                    """,
+                        unsafe_allow_html=True,
+                    )
+
+        # Botón para ir al chat de AG-PLAN (solo si hay análisis)
+        st.markdown(
+            """
+        <div style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">
+        """,
+            unsafe_allow_html=True,
+        )
+
+        if st.button(
+            "💬 Ir al Chat con AG-PLAN",
+            type="primary",
+            use_container_width=True,
+            key="go_to_plan_chat_unique",
+            help="Abre el chat interactivo con el asistente AG-PLAN",
+        ):
+            st.switch_page("pages/4_plan.py")
+
+        st.markdown(
+            """
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                💡 Conversa con el asistente AG-PLAN para obtener recomendaciones personalizadas
+            </p>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+
+        # Botón flotante para mostrar/ocultar alertas
+        if alertas:
+            alert_count = len(alertas)
+            alta_priority = any(a.get("prioridad") == "alta" for a in alertas)
+            toggle_class = "con-alertas" if alta_priority else ""
 
             st.markdown(
                 f"""
-            <div class="plan-section">
-                <h4 style="color: var(--text-primary); margin-bottom: 1rem;">💬 Chat del Plan</h4>
-                <div class="chat-container">
-                    {chat_content}
-                </div>
-            </div>
-            """,
-                unsafe_allow_html=True,
-            )
-
-            # Botón para ir al chat de AG-PLAN
-            st.markdown(
-                """
-            <div style="text-align: center; margin-top: 2rem;">
-            """,
-                unsafe_allow_html=True,
-            )
-
-            if st.button(
-                "💬 Ir al Chat con AG-PLAN",
-                type="primary",
-                use_container_width=True,
-                key="go_to_plan_chat",
-                help="Abre el chat interactivo con el asistente AG-PLAN",
-            ):
-                st.switch_page("pages/4_plan.py")
-
-            st.markdown(
-                """
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
-                    💡 Conversa con el asistente AG-PLAN para obtener recomendaciones personalizadas
-                </p>
-            </div>
+            <button class="alertas-toggle {toggle_class}" onclick="toggleAlertas()">
+                {"🔔" if st.session_state.alertas_visibles else "🔕"}
+            </button>
+            
+            <script>
+            function toggleAlertas() {{
+                var container = document.getElementById('alertasContainer');
+                var button = document.querySelector('.alertas-toggle');
+                
+                if (container && container.style.display === 'none') {{
+                    container.style.display = 'block';
+                    button.innerHTML = '🔔';
+                }} else if (container) {{
+                    container.style.display = 'none';
+                    button.innerHTML = '🔕';
+                }}
+            }}
+            </script>
             """,
                 unsafe_allow_html=True,
             )
