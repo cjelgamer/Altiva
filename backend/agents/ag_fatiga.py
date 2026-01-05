@@ -37,6 +37,68 @@ def run_ag_fatiga(
     estado = estado_fisio.get("estado", "DESCONOCIDO")
     altitud = indicadores.get("altitud", 0)
 
+    # 1.1. Obtener datos de contexto
+    actividad_mental = estado_fisio.get("actividad_mental", "No especificada")
+    estado_emocional = estado_fisio.get("estado_emocional", "Normal y estable")
+
+    # 1.1. Calcular factores de altitud (CORREGIDO)
+    if altitud > 4500:
+        factor_altitud = 1.25  # +25% impacto muy alto
+        nivel_altitud = "Muy alta"
+    elif altitud > 4000:
+        factor_altitud = 1.20  # +20% impacto alto
+    elif altitud > 3500:
+        factor_altitud = 1.15  # +15% impacto significativo
+    elif altitud > 3000:
+        factor_altitud = 1.10  # +10% impacto moderado
+    elif altitud > 2500:
+        factor_altitud = 1.05  # +5% impacto leve
+    else:
+        factor_altitud = 1.00  # Sin impacto
+
+    # 1.2. Calcular factores de contexto
+    # Factores de actividad mental
+    if actividad_mental:
+        actividad_mental_str = str(actividad_mental).lower()
+        if "intensamente" in actividad_mental_str:
+            factor_actividad = 1.20  # +20% impacto
+        elif "trabajando" in actividad_mental_str:
+            factor_actividad = 1.10  # +10% impacto
+        elif "aprendiendo" in actividad_mental_str:
+            factor_actividad = 1.15  # +15% impacto (aprendizaje requiere más energía)
+        elif "tareas administrativas" in actividad_mental_str:
+            factor_actividad = (
+                1.05  # +5% impacto (tareas administrativas son menos demandante)
+            )
+        elif (
+            "revisando material" in actividad_mental_str
+            or "descansando mentalmente" in actividad_mental_str
+        ):
+            factor_actividad = 0.95  # -5% (revisar material es más descanso)
+        else:
+            factor_actividad = 1.00  # Normal
+    else:
+        factor_actividad = 1.00
+
+    # Factores de estado emocional
+    if estado_emocional:
+        estado_emocional_str = str(estado_emocional).lower()
+        if "muy motivado" in estado_emocional_str:
+            factor_emocional = 1.20  # +20% (muy motivado puede generar sobrecarga)
+        elif "desmotivado" in estado_emocional_str:
+            factor_emocional = 1.15  # +15% (desmotivación reduce capacidad)
+        elif "ansioso" in estado_emocional_str or "estresado" in estado_emocional_str:
+            factor_emocional = 1.25  # +25% (estrés agota rendimiento)
+        elif "un poco cansado" in estado_emocional_str:
+            factor_emocional = 1.10  # +10% (cansa afecta rendimiento)
+        else:
+            factor_emocional = 1.00  # Normal y estable
+    else:
+        factor_emocional = 1.00  # Por defecto si no hay datos
+
+    # Factor global combinado para IFA
+    factor_global = factor_altitud * factor_actividad * factor_emocional
+
     # 1.1. Obtener datos históricos del usuario para análisis temporal
     from datetime import datetime, timedelta
 
@@ -71,9 +133,11 @@ def run_ag_fatiga(
     # 2. Construir prompt estructurado para el LLM con alertas y temporizadores
     prompt = f"""Analiza el siguiente estado fisiológico de un usuario en altura y determina su nivel de fatiga, además de generar alertas y recomendaciones con tiempos específicos.
 
-CONTEXTO DE ALTITUD:
+CONTEXTO DE ALTITUD Y FACTORES CRÍTICOS:
 - Altitud actual: {altitud} metros sobre el nivel del mar
-- {"⚠️ ALTURA EXTREMA (>3500m): Mayor sensibilidad a deshidratación y déficit de sueño" if altitud > 3500 else "Altitud moderada"}
+- {"⚠️ ALTURA EXTREMA (>3500m): +15% impacto en fatiga" if altitud > 3500 else "Altitud moderada (+5% impacto)"}
+- {"🏔️ GRAN ALTITUD (>4000m): +20% impacto en fatiga" if altitud > 4000 else "Altitud alta (+10% impacto)"}
+- {"🏔️ ALTURA EXTREMA (>4500m): +25% impacto en fatiga" if altitud > 4500 else "Altitud muy alta (+15% impacto)"}
 
 ESTADO FISIOLÓGICO ACTUAL:
 - Estado general: {estado}
@@ -82,23 +146,14 @@ ESTADO FISIOLÓGICO ACTUAL:
 - Actividad física: {indicadores.get("actividad_minutos", 0)} minutos (mínimo recomendado: {indicadores.get("actividad_minima", 30)} min)
 - Nivel de energía subjetivo: {indicadores.get("nivel_energia", 3)}/5
 
-HISTORIAL Y TENDENCIAS:
-- Tendencia de fatiga: {tendencia_fatiga}
-- Análisis de últimos días: {len(historial_reciente)} registros disponibles
-- Última actualización: {ultima_actualizacion.strftime("%Y-%m-%d %H:%M") if historial_reciente else "Primera vez"}
-
 CONTEXTO DE PRODUCTIVIDAD:
 - Actividad mental actual: {actividad_mental if actividad_mental else "No especificada"}
 - Estado emocional: {estado_emocional if estado_emocional else "No especificado"}
-- Nivel de energía subjetivo: {indicadores.get("nivel_energia", 3)}/5
-- Horas de sueño: {indicadores.get("horas_sueno", 0)}h (impacta directamente la productividad)
+- Tendencia de fatiga: {tendencia_fatiga}
 
-ALERTAS ACTIVAS:
-{chr(10).join(f"- {alerta}" for alerta in alertas) if alertas else "- Sin alertas"}
-
-INFORMACIÓN ADICIONAL:
-- Altitud: {altitud}m (afecta capacidad cognitiva y productiva)
-- Hidratación actual: {indicadores.get("hidratacion_porcentaje", 0):.1f}% del objetivo
+HISTORIAL RECIENTE:
+- Registros previos: {len(historial_reciente)} estados guardados
+- Evolución: {"Mejorando" if len(historial_reciente) > 3 else "Estable" if len(historial_reciente) > 1 else "Insuficiente datos"}
 
 INSTRUCCIONES:
 Analiza estos datos y proporciona tu respuesta EXACTAMENTE en el siguiente formato JSON (sin markdown, solo JSON puro):
@@ -106,10 +161,10 @@ Analiza estos datos y proporciona tu respuesta EXACTAMENTE en el siguiente forma
 {{
   "nivel_fatiga": "Bajo|Medio|Alto",
   "ifa": <número entre 0 y 100>,
-  "justificacion": "<explicación detallada en 2-3 oraciones que justifique el nivel de fatiga y el IFA, considerando el contexto de altitud>",
+  "justificacion": "<explicación detallada en 2-3 oraciones que justifique el nivel de fatiga y el IFA, considerando el contexto de altitud y productividad>",
   "alertas": [
     {{
-      "tipo": "hidratacion|descanso|actividad|energia",
+      "tipo": "hidratacion|descanso|actividad|energia|productividad",
       "prioridad": "alta|media|baja",
       "mensaje": "<mensaje específico y conciso para el usuario>",
       "tiempo_recomendado": "<en X horas/minutos, cada X horas, ahora>",
@@ -122,7 +177,9 @@ Analiza estos datos y proporciona tu respuesta EXACTAMENTE en el siguiente forma
     "mejor_horario_inicio": "<hora recomendada para empezar>",
     "intervalos_concentracion": <minutos de concentración óptima>,
     "tiempo_descanso_estudio": <minutos de descanso entre sesiones>,
-    "productividad_relativa": "<Baja/Media/Alta según IFA>"
+    "productividad_relativa": "<Baja/Media/Alta según análisis>",
+    "factor_altitud": "<factor numérico que impacta el rendimiento>",
+    "estado_productivo": "<estado actual del usuario>"
   }},
   "contadores": {{
     "hidratacion": {{
@@ -142,29 +199,33 @@ Analiza estos datos y proporciona tu respuesta EXACTAMENTE en el siguiente forma
       "objetivo_min": {indicadores.get("actividad_minima", 30)},
       "faltante_min": <calculado>,
       "proxima_sesion_en": "<cuándo debería hacer actividad física>"
+    }},
+    "energia": {{
+      "nivel_actual": {indicadores.get("nivel_energia", 3)}/5,
+      "estado": "bajo|normal|alto|agotado"
     }}
   }}
 }}
 
-CRITERIOS:
-- IFA 0-33: Fatiga Baja (productividad alta)
-- IFA 34-66: Fatiga Media (productividad moderada)
-- IFA 67-100: Fatiga Alta (productividad baja)
-- Considera que en altura (>3500m) los efectos de deshidratación y falta de sueño se amplifican
-- Evalúa CAPACIDAD PRODUCTIVA basada en:
-  * Nivel de energía actual (1-5)
-  * Horas y calidad del sueño
-  * Estado de hidratación
-  * Tendencia de fatiga
-- Productividad óptima = energía 4-5, sueño >80%, hidratación >80%, IFA <40
-- Genera alertas específicas basadas en los déficits actuales y tendencias
-- Para hidratación: recomienda tomas cada 1-2 horas en altura
-- Para descanso: recomienda pausas cada 2 horas de trabajo
-- Para actividad: recomienda ejercicio ligero si IFA es bajo, descanso si IFA es alto
-- Los tiempos deben ser específicos y accionables
-- CONSIDERA LA TENDENCIA: Si está empeorando, genera alertas más urgentes
-- Si la tendencia es estable o mejorando, ajusta la prioridad de las alertas
-- GENERA AL MENOS 2 ALERTAS ESPECÍFICAS basadas en los datos actuales
+CRITERIOS ESPECÍFICOS PARA CÁLCULO DE IFA:
+- IFA BASE = ((nivel_energia_ponderado * 0.4) + (sueño_puntuacion * 0.3) + (hidratacion_puntuacion * 0.3)) * factor_altitud
+- Nivel energía ponderado: (5 - nivel_energia) / 5 * 100
+- Sueño puntuación: (horas_sueno / sueno_base_h) * 100, max 100
+- Hidratación puntuación: (agua_consumida_ml / agua_base_ml) * 100, max 100
+- Factor altitud: 1.15 si altitud < 3500m, 1.25 si 3500-4000m, 1.35 si altitud > 4000m
+- FACTORES ADICIONALES PARA PRODUCTIVIDAD:
+  * Estudio intensivo: -15% capacidad productiva
+  * Estrés/ansiedad: -20% capacidad productiva
+  * Energía baja (1-2): -30% capacidad productiva
+  * Estados negativos compuestos: hasta -40% capacidad productiva
+- IFA > 60: Reducción progresiva de capacidad (5-IFA)% 
+
+FÓRMULAS DE CÁLCULO:
+- IFA_ajustado = IFA_BASE + factores_adicionales
+- Capacidad_productiva = (100 - IFA_ajustado) * (1 - reduccion_actividad_mental)
+- Si IFA_ajustado > 100, se limita a 100
+- Si capacidad_productiva < 0, se establece en 10%
+- alertas prioritarias si IFA > 60 o capacidad_productiva < 40%
 - INCLUYE ANÁLISIS DE HORARIOS ÓPTIMOS para estudio/trabajo según el estado actual
 """
 
@@ -283,25 +344,87 @@ CRITERIOS:
             agua_consumida = indicadores.get("agua_consumida_ml", 0)
             agua_base = indicadores.get("agua_base_ml", 2000)
 
+            # Altitud-specific hydration alerts
             if agua_consumida < agua_base * 0.8:
+                if altitud > 4000:
+                    mensaje = f"⚠️ ALTURA EXTREMA ({altitud}m): Hidratación crítica - bebe más agua para evitar el mal de altura"
+                    prioridad = "alta"
+                    accion = f"Bebe {min(300, agua_base - agua_consumida)}ml de agua inmediatamente"
+                    tiempo = "Ahora mismo (cada 2 horas)"
+                elif altitud > 3500:
+                    mensaje = f"🏔️ GRAN ALTITUD ({altitud}m): Aumenta tu consumo de agua para adaptarte a la altura"
+                    prioridad = "media" if agua_consumida < agua_base * 0.6 else "baja"
+                    accion = f"Bebe {min(250, agua_base - agua_consumida)}ml de agua"
+                    tiempo = "En los próximos 30 minutos"
+                else:
+                    mensaje = "Necesitas beber más agua para mantenerte hidratado"
+                    prioridad = "media" if agua_consumida < agua_base * 0.5 else "baja"
+                    accion = f"Bebe {min(200, agua_base - agua_consumida)}ml de agua"
+                    tiempo = "Cuando puedas"
+
                 alertas.append(
                     {
                         "tipo": "hidratacion",
-                        "prioridad": "alta"
-                        if agua_consumida < agua_base * 0.5
-                        else "media",
-                        "mensaje": "Necesitas beber más agua para mantenerte hidratado en altura",
-                        "tiempo_recomendado": "Ahora mismo",
-                        "accion_sugerida": f"Bebe {min(250, agua_base - agua_consumida)}ml de agua",
+                        "prioridad": prioridad,
+                        "mensaje": mensaje,
+                        "tiempo_recomendado": tiempo,
+                        "accion_sugerida": accion,
                     }
                 )
+
+            # Altitud-specific energy alerts
+            energia = indicadores.get("nivel_energia", 3)
+            if energia <= 2:
+                if altitud > 4000:
+                    alertas.append(
+                        {
+                            "tipo": "energia",
+                            "prioridad": "alta",
+                            "mensaje": f"🚨 ALERTA DE ALTURA: Tu nivel de energía ({energia}/5) es peligroso bajo a {altitud}m",
+                            "tiempo_recomendado": "Inmediatamente - descanso obligatorio",
+                            "accion_sugerida": "Descansa 20-30 minutos, respira profundamente y considera bajar de altitud",
+                        }
+                    )
+                elif altitud > 3500:
+                    alertas.append(
+                        {
+                            "tipo": "energia",
+                            "prioridad": "media",
+                            "mensaje": f"⚡ Baja energía ({energia}/5) a {altitud}m - riesgo de fatiga por altura",
+                            "tiempo_recomendado": "Cada 1-2 horas",
+                            "accion_sugerida": "Toma pausas cortas de 10 minutos con ejercicios de respiración",
+                        }
+                    )
+
+            # Altitud-specific productivity alerts
+            if actividad_mental and "intensamente" in actividad_mental.lower():
+                if altitud > 4000:
+                    alertas.append(
+                        {
+                            "tipo": "productividad",
+                            "prioridad": "media",
+                            "mensaje": f"🧠 REDUCE INTENSIDAD: Estudio intensivo a {altitud}m puede acelerar la fatiga",
+                            "tiempo_recomendado": "Cada 25 minutos (técnica Pomodoro)",
+                            "accion_sugerida": "Alternan 25 min estudio con 5 min descanso activo",
+                        }
+                    )
+                elif altitud > 3500:
+                    alertas.append(
+                        {
+                            "tipo": "productividad",
+                            "prioridad": "baja",
+                            "mensaje": f"💡 AJUSTA RITMO: A {altitud}m tu cerebro trabaja un 15% más lento",
+                            "tiempo_recomendado": "Cada 45 minutos",
+                            "accion_sugerida": "Reduce sesión a 45 min con 10 min descanso",
+                        }
+                    )
 
     except Exception as e:
         # Fallback en caso de error del LLM
         print(f"Error al procesar respuesta del LLM: {e}")
         nivel_fatiga = "Medio"
-        ifa = 50
-        justificacion = f"Error en el análisis automático. Estado fisiológico: {estado}"
+        ifa = min(100, 45 + (factor_global - 1.0) * 20)  # IFA basado en factor_global
+        justificacion = f"Error en el análisis automático. Estado fisiológico: {estado} (Factor altitud: {factor_global:.2f})"
 
         # Generar alertas, contadores y productividad básicos en fallback
         agua_consumida = indicadores.get("agua_consumida_ml", 0)
@@ -311,18 +434,53 @@ CRITERIOS:
         energia = indicadores.get("nivel_energia", 3)
 
         alertas = []
+
+        # Altitud-specific hydration alerts en fallback
         if agua_consumida < agua_base * 0.8:
+            if altitud > 4000:
+                mensaje = f"🚨 CRÍTICO ({altitud}m): Hidratación insufiente para altitud extrema"
+                prioridad = "alta"
+            elif altitud > 3500:
+                mensaje = (
+                    f"⚠️ ALTURA ({altitud}m): Aumenta consumo de agua por la altitud"
+                )
+                prioridad = "media"
+            else:
+                mensaje = "Necesitas beber más agua para mantenerte hidratado"
+                prioridad = "media"
+
             alertas.append(
                 {
                     "tipo": "hidratacion",
-                    "prioridad": "alta"
-                    if agua_consumida < agua_base * 0.5
-                    else "media",
-                    "mensaje": "Necesitas beber más agua para mantenerte hidratado en altura",
+                    "prioridad": prioridad,
+                    "mensaje": mensaje,
                     "tiempo_recomendado": "Ahora mismo",
                     "accion_sugerida": f"Bebe {min(250, agua_base - agua_consumida)}ml de agua",
                 }
             )
+
+        # Altitud-specific energy alerts en fallback
+        if energia <= 2:
+            if altitud > 4000:
+                alertas.append(
+                    {
+                        "tipo": "energia",
+                        "prioridad": "alta",
+                        "mensaje": f"🚨 PELIGRO: Energía crítica ({energia}/5) a {altitud}m - riesgo de mal de altura",
+                        "tiempo_recomendado": "Inmediato",
+                        "accion_sugerida": "Descansar y considerar descender a menor altitud",
+                    }
+                )
+            elif altitud > 3500:
+                alertas.append(
+                    {
+                        "tipo": "energia",
+                        "prioridad": "media",
+                        "mensaje": f"⚡ Baja energía ({energia}/5) a {altitud}m - fatiga por altura",
+                        "tiempo_recomendado": "Cada 2 horas",
+                        "accion_sugerida": "Tomar pausas frecuentes con respiración profunda",
+                    }
+                )
 
         # Productividad fallback
         productividad_capacidad = (energia / 5) * 70  # Estimación conservadora

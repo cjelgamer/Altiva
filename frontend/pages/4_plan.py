@@ -303,6 +303,7 @@ def main():
         sort=[("timestamp", -1)],
     )
 
+    # Valores por defecto
     ifa = 50
     nivel_fatiga = "Medio"
     ifa_color = "var(--warning-color)"
@@ -326,38 +327,119 @@ def main():
             emoji = "🔴"
             estado = "Crítico"
 
-        st.markdown(
-            f"""
-        <div class="status-card">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏔️</div>
-            <div style="font-size: 1.1rem; color: var(--text-primary); font-weight: 600; margin-bottom: 1rem;">
-                Índice de Fatiga en Altura
-            </div>
-            <div class="ifa-score" style="color: {ifa_color};">{ifa}/100</div>
-            <div class="ifa-status">{emoji} {estado}</div>
-            <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
-                👤 {user_data.get("username", "Usuario")} • 🏙️ {profile.get("ciudad", "N/A")} ({profile.get("altitud", 0)}m)
-            </div>
+    st.markdown(
+        f"""
+    <div class="status-card">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏔️</div>
+        <div style="font-size: 1.1rem; color: var(--text-primary); font-weight: 600; margin-bottom: 1rem;">
+            Índice de Fatiga en Altura
         </div>
-        """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.warning(
-            "⚠️ No hay análisis de fatiga reciente. Por favor, ve al Monitor y ejecuta un análisis primero."
-        )
-        st.page_link("pages/3_Monitor.py", label="📊 Ir al Monitor", icon="📊")
-        st.stop()
+        <div class="ifa-score" style="color: {ifa_color};">{ifa}/100</div>
+        <div class="ifa-status">{emoji} {estado}</div>
+        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
+            👤 {user_data.get("username", "Usuario")} • 🏙️ {profile.get("ciudad", "N/A")} ({profile.get("altitud", 0)}m)
+        </div>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
 
-    # Session state para el chat
+    # Session state para el chat y plan
     if "chat_messages" not in st.session_state:
         st.session_state.chat_messages = []
 
-        # Mensaje de bienvenida inicial
-        st.session_state.chat_messages.append(
-            {
-                "role": "bot",
-                "content": f"""¡Hola! Soy AG-PLAN, tu asistente personal de recuperación en altura.
+    if "plan_generado" not in st.session_state:
+        st.session_state.plan_generado = None
+
+        # Generar plan inicial automáticamente
+        if estado_fatiga_reciente:
+            with st.spinner("🤖 Generando tu plan inicial de recuperación..."):
+                try:
+                    # Obtener historial reciente para contexto
+                    historial_dia = list(
+                        daily_states.find(
+                            {
+                                "user_id": user_id,
+                                "timestamp": {
+                                    "$gte": datetime.utcnow().replace(
+                                        hour=0, minute=0, second=0, microsecond=0
+                                    )
+                                },
+                            }
+                        )
+                        .sort("timestamp", -1)
+                        .limit(10)
+                    )
+
+                    # Ejecutar AG-PLAN sin consulta específica
+                    resultado = run_ag_plan(
+                        user_id,
+                        estado_fatiga_reciente,
+                        historial_dia,
+                        "Generar plan completo de recuperación y productividad para hoy",
+                    )
+
+                    plan_data = resultado.get("plan", {}) if resultado else {}
+
+                    if plan_data:
+                        st.session_state.plan_generado = plan_data
+
+                        # Construir mensaje con el plan generado
+                        plan_content = f"""¡Hola! Soy AG-PLAN, tu asistente personal de recuperación en altura.
+
+🏔️ Tu IFA actual es: {ifa}/100 ({estado})
+📍 Basado en tu perfil: {profile.get("ciudad", "N/A")} ({profile.get("altitud", 0)}m)
+
+📋 **TU PLAN DE RECUPERACIÓN PARA HOY:**
+"""
+
+                        if plan_data.get("recomendaciones_inmediatas"):
+                            plan_content += "🚀 **Recomendaciones Inmediatas:**\n"
+                            for rec in plan_data["recomendaciones_inmediatas"][:3]:
+                                plan_content += f"• {rec}\n"
+                            plan_content += "\n"
+
+                        if plan_data.get("horarios_optimos"):
+                            plan_content += "⏰ **Horarios Óptimos:**\n"
+                            for tipo, horario in list(
+                                plan_data["horarios_optimos"].items()
+                            )[:3]:
+                                plan_content += f"• {tipo.title()}: {horario}\n"
+                            plan_content += "\n"
+
+                        if plan_data.get("pausas_activas"):
+                            plan_content += "🤸 **Pausas Activas Recomendadas:**\n"
+                            for pausa in plan_data["pausas_activas"][:3]:
+                                plan_content += f"• {pausa}\n"
+                            plan_content += "\n"
+
+                        if plan_data.get("consejos_altitud"):
+                            plan_content += "🏔️ **Consejos para Altitud:**\n"
+                            for consejo in plan_data["consejos_altitud"][:2]:
+                                plan_content += f"• {consejo}\n"
+                            plan_content += "\n"
+
+                        plan_content += """💡 **Puedes preguntarme detalles como:**
+• "¿Qué ejercicios específicos me recomiendas?"
+• "¿A qué hora debo estudiar hoy?"
+• "¿Cuántas pausas debo tomar?"
+• "¿Cómo puedo mejorar mi energía?"
+
+¿Sobre qué aspecto de tu plan te gustaría saber más?"""
+
+                        st.session_state.chat_messages.append(
+                            {
+                                "role": "bot",
+                                "content": plan_content,
+                                "timestamp": datetime.now(),
+                            }
+                        )
+                    else:
+                        # Mensaje de bienvenida si no hay plan
+                        st.session_state.chat_messages.append(
+                            {
+                                "role": "bot",
+                                "content": f"""¡Hola! Soy AG-PLAN, tu asistente personal de recuperación en altura.
 
 🏔️ Tu IFA actual es: {ifa}/100 ({estado})
 📍 Basado en tu perfil: {profile.get("ciudad", "N/A")} ({profile.get("altitud", 0)}m)
@@ -370,9 +452,18 @@ Puedo ayudarte con:
 • 📈 Seguimiento de tu progreso
 
 ¿En qué puedo ayudarte hoy?""",
-                "timestamp": datetime.now(),
-            }
-        )
+                                "timestamp": datetime.now(),
+                            }
+                        )
+
+                except Exception as e:
+                    st.session_state.chat_messages.append(
+                        {
+                            "role": "bot",
+                            "content": f"❌ Error al generar plan inicial. Por favor, intenta de nuevo.\n\nError: {str(e)}",
+                            "timestamp": datetime.now(),
+                        }
+                    )
 
     # Mostrar mensajes del chat
     chat_container = st.container()
@@ -475,13 +566,13 @@ Puedo ayudarte con:
 
 """
 
-                    if "recomendaciones_inmediatas" in plan_data:
+                    if plan_data.get("recomendaciones_inmediatas"):
                         bot_response += "🚀 **Recomendaciones Inmediatas:**\n"
                         for rec in plan_data["recomendaciones_inmediatas"][:3]:
                             bot_response += f"• {rec}\n"
                         bot_response += "\n"
 
-                    if "horarios_optimos" in plan_data:
+                    if plan_data.get("horarios_optimos"):
                         bot_response += "⏰ **Horarios Óptimos:**\n"
                         for tipo, horario in list(
                             plan_data["horarios_optimos"].items()
@@ -489,13 +580,13 @@ Puedo ayudarte con:
                             bot_response += f"• {tipo.title()}: {horario}\n"
                         bot_response += "\n"
 
-                    if "pausas_activas" in plan_data:
+                    if plan_data.get("pausas_activas"):
                         bot_response += "🤸 **Pausas Activas Recomendadas:**\n"
                         for pausa in plan_data["pausas_activas"][:2]:
                             bot_response += f"• {pausa}\n"
                         bot_response += "\n"
 
-                    if "consejos_altitud" in plan_data:
+                    if plan_data.get("consejos_altitud"):
                         bot_response += "🏔️ **Consejos para Altitud:**\n"
                         for consejo in plan_data["consejos_altitud"][:2]:
                             bot_response += f"• {consejo}\n"

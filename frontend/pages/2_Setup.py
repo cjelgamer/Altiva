@@ -7,6 +7,7 @@ sys.path.append(str(ROOT_DIR))
 
 from backend.crew.crew import run_initial_crew
 from backend.services.database import has_user_profile, get_user_profile, user_profiles
+from backend.services.altitude_loader import get_all_cities
 
 # --- ESTILO OSCURO MODERNO CON AJUSTES ---
 st.markdown(
@@ -343,14 +344,34 @@ with st.form("setup_form"):
             step=0.01,
             help="Tu estatura en metros",
         )
+        # Cargar ciudades dinámicamente desde el JSON
+        todas_las_ciudades = get_all_cities()
+
+        # Mostrar información de depuración
+        if todas_las_ciudades:
+            st.markdown(f"🔍 **Debug**: {len(todas_las_ciudades)} ciudades disponibles")
+        else:
+            st.error("⚠️ No se pudieron cargar las ciudades del JSON")
+
+        # Encontrar el índice de la ciudad guardada
+        indice_ciudad = 0
+        ciudad_guardada = (
+            existing_profile.get("ciudad", "Puno") if existing_profile else "Puno"
+        )
+
+        if ciudad_guardada in todas_las_ciudades:
+            indice_ciudad = todas_las_ciudades.index(ciudad_guardada)
+        else:
+            # Si la ciudad guardada no está en la lista, usar la primera
+            st.warning(
+                f"⚠️ Ciudad '{ciudad_guardada}' no encontrada, usando Puno por defecto"
+            )
+            indice_ciudad = 0
+
         ciudad = st.selectbox(
             "Ciudad",
-            ["Puno", "Juliaca", "Ilave", "Ayaviri", "Azangaro"],
-            index=["Puno", "Juliaca", "Ilave", "Ayaviri", "Azangaro"].index(
-                existing_profile.get("ciudad", "Puno")
-            )
-            if existing_profile
-            else 0,
+            todas_las_ciudades,
+            index=indice_ciudad,
             help="Ciudad donde vives o estudias",
         )
 

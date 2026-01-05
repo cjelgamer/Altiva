@@ -10,7 +10,11 @@ sys.path.append(str(ROOT_DIR))
 from backend.agents.ag_fisio import run_ag_fisio
 from backend.agents.ag_fatiga import run_ag_fatiga
 from backend.agents.ag_plan import run_ag_plan
-from backend.services.database import get_user_profile, daily_states
+from backend.services.database import (
+    get_user_profile,
+    daily_states,
+    update_user_profile,
+)
 
 # --- ESTILO OSCURO MODERNO CON AJUSTES ---
 st.markdown(
@@ -554,15 +558,10 @@ def main():
             encoded_string = base64.b64encode(image_file.read()).decode()
             logo_html = f'<img src="data:image/png;base64,{encoded_string}" style="width: 60px; height: 60px; border-radius: 0.75rem; margin-bottom: 1rem;">'
 
-    # Header moderno oscuro con logo y botón de perfil
+    # Header moderno oscuro con logo
     st.markdown(
         f"""
-    <div style="text-align: center; margin-bottom: 2rem; position: relative;">
-        <div style="position: absolute; top: 0; left: 0;">
-            <button onclick="window.location.href='pages/2_Setup.py'" style="background: var(--primary-color); color: white; border: none; border-radius: 0.5rem; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s ease;" onmouseover="this.style.background='var(--primary-dark)'" onmouseout="this.style.background='var(--primary-color)'">
-                👤 Perfil
-            </button>
-        </div>
+    <div style="text-align: center; margin-bottom: 2rem;">
         {logo_html}
         <h1 style="color: var(--text-primary); font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">
             📊 Monitor Diario
@@ -574,6 +573,17 @@ def main():
     """,
         unsafe_allow_html=True,
     )
+
+    # Botón de Perfil funcional con Streamlit
+    col_perfil, _ = st.columns([1, 5])
+    with col_perfil:
+        if st.button(
+            "👤 Perfil",
+            key="perfil_btn_funcional",
+            help="Ir a configuración de perfil",
+            use_container_width=True,
+        ):
+            st.switch_page("pages/2_Setup.py")
 
     # Información del usuario
     st.markdown(
@@ -637,6 +647,32 @@ def main():
         st.session_state.actividad_mental_guardada = None
     if "estado_emocional_guardado" not in st.session_state:
         st.session_state.estado_emocional_guardado = None
+
+    # Cargar actividad mental y emocional desde el último registro AG-FISIO
+    if (
+        st.session_state.actividad_mental_guardada is None
+        or st.session_state.estado_emocional_guardado is None
+    ):
+        hoy_inicio = datetime.utcnow().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+
+        ultimo_fisio = daily_states.find_one(
+            {
+                "user_id": user_id,
+                "agent": "AG-FISIO",
+                "timestamp": {"$gte": hoy_inicio},
+            },
+            sort=[("timestamp", -1)],
+        )
+
+        if ultimo_fisio:
+            st.session_state.actividad_mental_guardada = ultimo_fisio.get(
+                "actividad_mental", "Sin actividad mental importante"
+            )
+            st.session_state.estado_emocional_guardado = ultimo_fisio.get(
+                "estado_emocional", "Normal y estable"
+            )
 
     datos = st.session_state.datos_dia
 
@@ -795,34 +831,62 @@ def main():
     col_mental1, col_mental2 = st.columns(2)
 
     with col_mental1:
+        # Obtener valor guardado
+        valor_guardado_mental = st.session_state.get(
+            "actividad_mental_guardada", "Sin actividad mental importante"
+        )
+
+        # Encontrar índice del valor guardado
+        opciones_mentales = [
+            "Estudiando intensamente",
+            "Trabajando en proyectos",
+            "Tareas administrativas",
+            "Aprendiendo nuevo contenido",
+            "Revisando material",
+            "Descansando mentalmente",
+            "Sin actividad mental importante",
+        ]
+
+        index_mental = (
+            opciones_mentales.index(valor_guardado_mental)
+            if valor_guardado_mental in opciones_mentales
+            else 6
+        )
+
         actividad_mental = st.selectbox(
             "📚 Actividad mental actual",
-            options=[
-                "Estudiando intensamente",
-                "Trabajando en proyectos",
-                "Tareas administrativas",
-                "Aprendiendo nuevo contenido",
-                "Revisando material",
-                "Descansando mentalmente",
-                "Sin actividad mental importante",
-            ],
-            index=6,
+            options=opciones_mentales,
+            index=index_mental,
             key="actividad_mental_select",
             help="¿Qué tipo de actividad mental estás realizando?",
         )
 
     with col_mental2:
+        # Obtener valor guardado
+        valor_guardado_emocional = st.session_state.get(
+            "estado_emocional_guardado", "Normal y estable"
+        )
+
+        # Encontrar índice del valor guardado
+        opciones_emocionales = [
+            "Muy motivado y enfocado",
+            "Bien y concentrado",
+            "Normal y estable",
+            "Un poco cansado",
+            "Estresado o ansioso",
+            "Desmotivado",
+        ]
+
+        index_emocional = (
+            opciones_emocionales.index(valor_guardado_emocional)
+            if valor_guardado_emocional in opciones_emocionales
+            else 2
+        )
+
         estado_emocional = st.selectbox(
             "😊 Estado emocional",
-            options=[
-                "Muy motivado y enfocado",
-                "Bien y concentrado",
-                "Normal y estable",
-                "Un poco cansado",
-                "Estresado o ansioso",
-                "Desmotivado",
-            ],
-            index=2,
+            options=opciones_emocionales,
+            index=index_emocional,
             key="estado_emocional_select",
             help="¿Cómo te sientes emocionalmente?",
         )
@@ -908,7 +972,54 @@ def main():
                         "estado_emocional": estado_emocional,
                     },
                 )
-                st.success("✅ Datos guardados en MongoDB automáticamente")
+
+                # Verificar que los datos se guardaron correctamente
+                estado_fisio_guardado = daily_states.find_one(
+                    {"user_id": user_id, "agent": "AG-FISIO"}, sort=[("timestamp", -1)]
+                )
+
+                if estado_fisio_guardado:
+                    # Actualizar perfil del usuario con actividad mental y estado emocional
+                    try:
+                        update_user_profile(
+                            user_id,
+                            {
+                                "actividad_mental_actual": actividad_mental,
+                                "estado_emocional_actual": estado_emocional,
+                                "ultima_actualizacion": datetime.now(
+                                    timezone("America/Lima")
+                                ).isoformat(),
+                            },
+                        )
+                        print(
+                            f"✅ Perfil actualizado con actividad mental y estado emocional"
+                        )
+                    except Exception as profile_error:
+                        print(f"⚠️ Error actualizando perfil: {profile_error}")
+
+                    st.success("✅ Datos guardados en MongoDB automáticamente")
+
+                    # Actualizar session state con los datos guardados
+                    st.session_state.actividad_mental_guardada = (
+                        estado_fisio_guardado.get(
+                            "actividad_mental", "Sin actividad mental importante"
+                        )
+                    )
+                    st.session_state.estado_emocional_guardado = (
+                        estado_fisio_guardado.get(
+                            "estado_emocional", "Normal y estable"
+                        )
+                    )
+
+                    # Actualizar los datos del día con los valores guardados
+                    if "datos_dia" in st.session_state:
+                        st.session_state.datos_dia["agua"] = nueva_agua
+                        st.session_state.datos_dia["sueno"] = nueva_sueno
+                        st.session_state.datos_dia["actividad"] = nueva_actividad
+                        st.session_state.datos_dia["energia"] = energia_valor
+                else:
+                    st.error("❌ Error: Los datos no se pudieron verificar en MongoDB")
+
             except Exception as e:
                 st.error(f"❌ Error al guardar en MongoDB: {str(e)}")
         st.rerun()
@@ -1114,70 +1225,6 @@ def main():
                 """,
                     unsafe_allow_html=True,
                 )
-
-            # Mostrar contadores
-            if contadores:
-                # Contador de hidratación
-                hidratacion = contadores.get("hidratacion", {})
-                if hidratacion:
-                    pct_hidratacion = (
-                        hidratacion.get("consumido_ml", 0)
-                        / hidratacion.get("objetivo_ml", 1)
-                    ) * 100
-                    color_h = (
-                        "var(--success-color)"
-                        if pct_hidratacion >= 80
-                        else "var(--warning-color)"
-                        if pct_hidratacion >= 50
-                        else "var(--error-color)"
-                    )
-
-                    st.markdown(
-                        f"""
-                    <div class="contador-section">
-                        <div class="contador-titulo">💧 Hidratación</div>
-                        <div class="contador-progress">
-                            <div class="contador-progress-fill" style="width: {pct_hidratacion}%; background: {color_h};"></div>
-                        </div>
-                        <div class="contador-text">
-                            <span>{hidratacion.get("consumido_ml", 0)}ml</span>
-                            <span>{hidratacion.get("objetivo_ml", 0)}ml objetivo</span>
-                        </div>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
-
-                # Contador de actividad
-                actividad = contadores.get("actividad", {})
-                if actividad:
-                    pct_actividad = (
-                        actividad.get("realizado_min", 0)
-                        / actividad.get("objetivo_min", 1)
-                    ) * 100
-                    color_a = (
-                        "var(--success-color)"
-                        if pct_actividad >= 100
-                        else "var(--warning-color)"
-                        if pct_actividad >= 50
-                        else "var(--error-color)"
-                    )
-
-                    st.markdown(
-                        f"""
-                    <div class="contador-section">
-                        <div class="contador-titulo">🏃 Actividad</div>
-                        <div class="contador-progress">
-                            <div class="contador-progress-fill" style="width: {pct_actividad}%; background: {color_a};"></div>
-                        </div>
-                        <div class="contador-text">
-                            <span>{actividad.get("realizado_min", 0)}min</span>
-                            <span>{actividad.get("objetivo_min", 0)}min objetivo</span>
-                        </div>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
 
         # Botón para ir al chat de AG-PLAN (solo si hay análisis)
         st.markdown(
